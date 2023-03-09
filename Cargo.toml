@@ -1,0 +1,14 @@
+[package]
+name = "etcd-client-py"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "etcd_client"
+crate-type = ["cdylib"]
+
+[dependencies]
+etcd-client = "0.10"
+pyo3 = { version = "0.18", features = ["extension-module"] }
+pyo3-asyncio = { version = "0.18", features = ["tokio-runtime"] }
+tokio = { version = "1", features = ["sync"] }
