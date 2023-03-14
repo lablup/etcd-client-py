@@ -12,3 +12,4 @@ etcd-client = "0.10"
 pyo3 = { version = "0.18", features = ["extension-module"] }
 pyo3-asyncio = { version = "0.18", features = ["tokio-runtime"] }
 tokio = { version = "1", features = ["sync"] }
+tokio-stream = "0.1"
