@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Checkout the source tree
         uses: actions/checkout@v3
-      - name: Build the wheel and source distribution
+      - name: Build the wheel
         uses: PyO3/maturin-action@v1
         env:
           PROTOC: /home/runner/.local/bin/protoc
@@ -52,7 +52,7 @@ jobs:
         uses: docker/setup-qemu-action@v1
       - name: Checkout the source tree
         uses: actions/checkout@v3
-      - name: Build the wheel and source distribution
+      - name: Build the wheel
         uses: PyO3/maturin-action@v1
         env:
           PROTOC: /home/runner/.local/bin/protoc
@@ -86,7 +86,7 @@ jobs:
       - name: Install prerequisites
         run: |
           brew install protobuf
-      - name: Build the wheel and source distribution
+      - name: Build the wheel
         uses: PyO3/maturin-action@v1
         with:
           command: build
