@@ -17,6 +17,9 @@ jobs:
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v1
+      - name: Install prerequisites
+        run: |
+          apt-get install -y protobuf-compiler
       - name: Checkout the source tree
         uses: actions/checkout@v3
       - name: Build the wheel and source distribution
@@ -41,6 +44,9 @@ jobs:
     steps:
       - name: Checkout the source tree
         uses: actions/checkout@v3
+      - name: Install prerequisites
+        run: |
+          brew install protobuf
       - name: Build the wheel and source distribution
         uses: PyO3/maturin-action@v1
         with:
