@@ -16,10 +16,6 @@ jobs:
         manylinux: ["auto"]
         python-version: ["3.10", "3.11"]
     steps:
-      - name: Install prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
       - name: Checkout the source tree
         uses: actions/checkout@v3
       - name: Build the wheel and source distribution
@@ -27,6 +23,9 @@ jobs:
         with:
           command: build
           args: --release -o dist -i python${{ matrix.python-version }}
+          before-script-linux: |
+            sudo apt-get update
+            sudo apt-get install -y protobuf-compiler
           manylinux: ${{ matrix.manylinux }}
           target: ${{ matrix.target }}
       - name: Upload artifacts
