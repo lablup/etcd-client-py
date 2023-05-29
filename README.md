@@ -1,5 +1,8 @@
 # etcd Client Binding for Python using Rust
 
+[![PyPI release version](https://badge.fury.io/py/etcd-client-py.svg)](https://pypi.org/project/etcd-client-py/)
+![Wheels](https://img.shields.io/pypi/wheel/etcd-client-py.svg)
+
 ## How to build
 
 ### Prerequisite
