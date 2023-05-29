@@ -130,13 +130,5 @@ jobs:
         with:
           name: wheels
           path: dist
-      - name: Set up Python as Runtime
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-      - name: Install the publish toolchain
-        run: |
-          pip install -U pip setuptools
-          pip install -U twine
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
