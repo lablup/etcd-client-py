@@ -113,6 +113,8 @@ jobs:
   publish-to-pypi:
     needs: [release-linux-x86_64, release-linux-aarch64, release-macos, release-source]
     environment: deploy-to-pypi
+    permissions:
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -128,9 +130,5 @@ jobs:
         run: |
           pip install -U pip setuptools
           pip install -U twine
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          twine upload dist/*.whl dist/*.tar.gz
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
