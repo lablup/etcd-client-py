@@ -91,7 +91,7 @@ jobs:
 
   release-source:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout the source tree
         uses: actions/checkout@v3
@@ -113,6 +113,7 @@ jobs:
   publish-to-pypi:
     needs: [release-linux-x86_64, release-linux-aarch64, release-macos, release-source]
     environment: deploy-to-pypi
+    runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v3
