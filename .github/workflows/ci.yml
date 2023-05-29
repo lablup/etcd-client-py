@@ -21,7 +21,7 @@ jobs:
       - name: Build the wheel and source distribution
         uses: PyO3/maturin-action@v1
         env:
-        - PROTOC=/home/runner/.local/bin/protoc
+          PROTOC: /home/runner/.local/bin/protoc
         with:
           command: build
           args: --release -o dist -i python${{ matrix.python-version }}
@@ -55,7 +55,7 @@ jobs:
       - name: Build the wheel and source distribution
         uses: PyO3/maturin-action@v1
         env:
-        - PROTOC=/home/runner/.local/bin/protoc
+          PROTOC: /home/runner/.local/bin/protoc
         with:
           command: build
           args: --release -o dist -i python${{ matrix.python-version }}
