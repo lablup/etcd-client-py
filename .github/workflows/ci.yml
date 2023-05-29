@@ -6,17 +6,16 @@ on:
   merge_group:
 
 jobs:
-  release-linux:
+  release-linux-x86_64:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        target: ["aarch64", "x86_64"]
-        manylinux: ["2014/2_17"]
+        target: ["x86_64"]
+        manylinux: ["manylinux2014"]
         python-version: ["3.10", "3.11"]
     steps:
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v1
       - name: Install prerequisites
         run: |
           sudo apt-get install -y protobuf-compiler
@@ -27,6 +26,38 @@ jobs:
         with:
           command: build
           args: --release -o dist -i python${{ matrix.python-version }}
+          before-script-linux: |
+            sudo apt-get update
+            sudo apt-get install -y protobuf-compiler
+          manylinux: ${{ matrix.manylinx }}
+          target: ${{ matrix.target }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  release-linux-aarch64:
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ["aarch64"]
+        manylinux: ["manylinux2014"]
+        python-version: ["3.10", "3.11"]
+    steps:
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Checkout the source tree
+        uses: actions/checkout@v3
+      - name: Build the wheel and source distribution
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release -o dist -i python${{ matrix.python-version }}
+          before-script-linux: |
+            sudo yum install -y protobuf-compiler
           manylinux: ${{ matrix.manylinx }}
           target: ${{ matrix.target }}
       - name: Upload artifacts
@@ -39,6 +70,7 @@ jobs:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11"]
     steps:
