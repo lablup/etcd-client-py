@@ -19,7 +19,7 @@ jobs:
         uses: docker/setup-qemu-action@v1
       - name: Install prerequisites
         run: |
-          apt-get install -y protobuf-compiler
+          sudo apt-get install -y protobuf-compiler
       - name: Checkout the source tree
         uses: actions/checkout@v3
       - name: Build the wheel and source distribution
