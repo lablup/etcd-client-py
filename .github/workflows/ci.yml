@@ -88,3 +88,48 @@ jobs:
         with:
           name: wheels
           path: dist
+
+  release-source:
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: macos-latest
+    steps:
+      - name: Checkout the source tree
+        uses: actions/checkout@v3
+      - name: Set up Python as Runtime
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Build the source distribution
+        run: |
+          pip install -U pip setuptools
+          pip install -U build
+          python -m build --sdist
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+  publish-to-pypi:
+    needs: [release-linux-x86_64, release-linux-aarch64, release-macos, release-source]
+    environment: deploy-to-pypi
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: wheels
+          path: dist
+      - name: Set up Python as Runtime
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install the publish toolchain
+        run: |
+          pip install -U pip setuptools
+          pip install -U twine
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          twine upload dist/*.whl dist/*.tar.gz
