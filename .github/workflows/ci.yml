@@ -24,7 +24,7 @@ jobs:
           command: build
           args: --release -o dist -i python${{ matrix.python-version }}
           before-script-linux: |
-            /bin/sudo yum install -y protobuf-compiler
+            yum install -y protobuf-compiler
           manylinux: ${{ matrix.manylinux }}
           target: ${{ matrix.target }}
       - name: Upload artifacts
