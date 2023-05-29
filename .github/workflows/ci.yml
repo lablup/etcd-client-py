@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         target: ["x86_64"]
-        manylinux: ["manylinux2014"]
+        manylinux: ["auto"]
         python-version: ["3.10", "3.11"]
     steps:
       - name: Install prerequisites
@@ -42,7 +42,7 @@ jobs:
       fail-fast: false
       matrix:
         target: ["aarch64"]
-        manylinux: ["manylinux2014"]
+        manylinux: ["auto"]
         python-version: ["3.10", "3.11"]
     steps:
       - name: Setup QEMU
