@@ -2,6 +2,7 @@
 Type hints for Native Rust Extension
 """
 
+import asyncio
 from typing import Any, Final, Optional
 
 class Client:
@@ -11,7 +12,7 @@ class Client:
         """ """
     def connect(self) -> "Client":
         """ """
-    def __aenter__(self) -> "Communicator":
+    async def __aenter__(self) -> "Communicator":
         """ """
 
 class Watch:
@@ -34,9 +35,13 @@ class Communicator:
         """ """
     def replace(self, key: str, initial_value: str, new_value: str) -> bool:
         """ """
-    def watch(self, key: str) -> "Watch":
+    def watch(
+        self, key: str, *, once: Optional[bool], ready_event: Optional[asyncio.Event]
+    ) -> "Watch":
         """ """
-    def watch_prefix(self, key: str) -> "Watch":
+    def watch_prefix(
+        self, key: str, *, once: Optional[bool], ready_event: Optional[asyncio.Event]
+    ) -> "Watch":
         """ """
 
 class Event:

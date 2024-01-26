@@ -11,13 +11,13 @@ use crate::error::Error;
 use crate::utils::nested_hashmap::{
     convert_pydict_to_nested_map, insert_into_map, put_recursive, NestedHashMap,
 };
-use crate::Watch;
+use crate::PyWatch;
 
-#[pyclass]
-pub struct Communicator(pub Arc<Mutex<EtcdClient>>);
+#[pyclass(name = "Communicator")]
+pub struct PyCommunicator(pub Arc<Mutex<EtcdClient>>);
 
 #[pymethods]
-impl Communicator {
+impl PyCommunicator {
     fn get<'a>(&'a self, py: Python<'a>, key: String) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
@@ -155,14 +155,14 @@ impl Communicator {
         })
     }
 
-    fn watch(&self, key: String) -> Watch {
+    fn watch(&self, key: String) -> PyWatch {
         let client = self.0.clone();
-        Watch::new(client, key, None)
+        PyWatch::new(client, key, None)
     }
 
-    fn watch_prefix(&self, key: String) -> Watch {
+    fn watch_prefix(&self, key: String) -> PyWatch {
         let client = self.0.clone();
         let options = WatchOptions::new().with_prefix();
-        Watch::new(client, key, Some(options))
+        PyWatch::new(client, key, Some(options))
     }
 }

@@ -11,14 +11,14 @@ use crate::stream::Stream;
 
 #[pyclass]
 #[derive(Clone)]
-pub struct Watch {
+pub struct PyWatch {
     client: Arc<Mutex<EtcdClient>>,
     key: String,
     options: Option<WatchOptions>,
     stream: Option<Arc<Mutex<Stream>>>,
 }
 
-impl Watch {
+impl PyWatch {
     pub fn new(client: Arc<Mutex<EtcdClient>>, key: String, options: Option<WatchOptions>) -> Self {
         Self {
             client,
@@ -46,7 +46,7 @@ impl Watch {
 }
 
 #[pymethods]
-impl Watch {
+impl PyWatch {
     fn __aiter__(&self) -> Self {
         self.clone()
     }

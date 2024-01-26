@@ -6,21 +6,20 @@ mod stream;
 mod utils;
 mod watch;
 
-use client::Client;
-use communicator::Communicator;
+use client::PyClient;
+use communicator::PyCommunicator;
 use error::ClientError;
-use event::Event;
-use event::EventType;
+use event::{PyEvent, PyEventType};
 use pyo3::prelude::*;
-use watch::Watch;
+use watch::PyWatch;
 
 #[pymodule]
-fn etcd_client(py: Python<'_>, module: &PyModule) -> PyResult<()> {
-    module.add_class::<Client>()?;
-    module.add_class::<Event>()?;
-    module.add_class::<EventType>()?;
-    module.add_class::<Communicator>()?;
-    module.add_class::<Watch>()?;
+fn etcd_client(py: Python, module: &PyModule) -> PyResult<()> {
+    module.add_class::<PyClient>()?;
+    module.add_class::<PyCommunicator>()?;
+    module.add_class::<PyEvent>()?;
+    module.add_class::<PyEventType>()?;
+    module.add_class::<PyWatch>()?;
 
     module.add("ClientError", py.get_type::<ClientError>())?;
     Ok(())

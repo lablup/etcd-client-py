@@ -5,17 +5,17 @@ use pyo3_asyncio::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::communicator::Communicator;
+use crate::communicator::PyCommunicator;
 use crate::error::Error;
 
-#[pyclass]
+#[pyclass(name = "Client")]
 #[derive(Clone)]
-pub struct Client {
+pub struct PyClient {
     endpoints: Vec<String>,
 }
 
 #[pymethods]
-impl Client {
+impl PyClient {
     #[new]
     fn new(endpoints: Vec<String>) -> Self {
         Self { endpoints }
@@ -30,7 +30,7 @@ impl Client {
         future_into_py(py, async move {
             let result = EtcdClient::connect(endpoints, None).await;
             result
-                .map(|client| Communicator(Arc::new(Mutex::new(client))))
+                .map(|client| PyCommunicator(Arc::new(Mutex::new(client))))
                 .map_err(|e| Error(e).into())
         })
     }

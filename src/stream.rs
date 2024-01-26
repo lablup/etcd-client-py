@@ -1,11 +1,11 @@
 use etcd_client::WatchStream;
 use tokio_stream::StreamExt;
 
-use crate::{error::Error, event::Event};
+use crate::{error::Error, event::PyEvent};
 
 pub struct Stream {
     stream: WatchStream,
-    events: Vec<Event>,
+    events: Vec<PyEvent>,
     index: usize,
 }
 
@@ -18,7 +18,7 @@ impl Stream {
         }
     }
 
-    pub async fn next(&mut self) -> Option<Result<Event, Error>> {
+    pub async fn next(&mut self) -> Option<Result<PyEvent, Error>> {
         if self.index < self.events.len() {
             let event = self.events[self.index].clone();
             self.index += 1;

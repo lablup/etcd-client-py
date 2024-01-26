@@ -5,10 +5,10 @@ use pyo3::pyclass::CompareOp;
 
 #[pyclass]
 #[derive(PartialEq, Eq, Clone)]
-pub struct EventType(EtcdClientEventType);
+pub struct PyEventType(EtcdClientEventType);
 
 #[pymethods]
-impl EventType {
+impl PyEventType {
     #[classattr]
     const PUT: Self = Self(EtcdClientEventType::Put);
 
@@ -16,20 +16,20 @@ impl EventType {
     const DELETE: Self = Self(EtcdClientEventType::Delete);
 }
 
-#[pyclass]
+#[pyclass(name = "Event")]
 #[derive(PartialEq, Eq, Clone)]
-pub struct Event {
+pub struct PyEvent {
     key: String,
     value: String,
+    event: PyEventType,
     prev_value: Option<String>,
-    event: EventType,
 }
 
 #[pymethods]
-impl Event {
+impl PyEvent {
     #[new]
     #[pyo3(signature = (key, value, prev_value, event))]
-    fn new(key: String, value: String, prev_value: Option<String>, event: EventType) -> Self {
+    fn new(key: String, value: String, prev_value: Option<String>, event: PyEventType) -> Self {
         Self {
             key,
             value,
@@ -47,13 +47,13 @@ impl Event {
     }
 }
 
-impl From<EtcdClientEvent> for Event {
+impl From<EtcdClientEvent> for PyEvent {
     fn from(event: EtcdClientEvent) -> Self {
         let kv = event.kv().unwrap();
         let key = String::from_utf8(kv.key().to_owned()).unwrap();
         let value = String::from_utf8(kv.value().to_owned()).unwrap();
         let prev_value = None;
-        let event = EventType(event.event_type());
+        let event = PyEventType(event.event_type());
         Self {
             key,
             value,
