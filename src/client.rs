@@ -1,4 +1,4 @@
-use etcd_client::Client as RustClient;
+use etcd_client::Client as EtcdClient;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use pyo3_asyncio::tokio::future_into_py;
@@ -28,7 +28,7 @@ impl Client {
     fn __aenter__<'a>(&'a self, py: Python<'a>) -> PyResult<&'a PyAny> {
         let endpoints = self.endpoints.clone();
         future_into_py(py, async move {
-            let result = RustClient::connect(endpoints, None).await;
+            let result = EtcdClient::connect(endpoints, None).await;
             result
                 .map(|client| Communicator(Arc::new(Mutex::new(client))))
                 .map_err(|e| Error(e).into())

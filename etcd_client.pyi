@@ -22,15 +22,15 @@ class Communicator:
         """ """
     def get_prefix(self, key: str) -> dict:
         """ """
-    def keys_prefix(self, key: str) -> list[str]:
+    def put(self, key: str, value: str) -> None:
+        """ """
+    def put_prefix(self, key: str, value: dict) -> None:
         """ """
     def delete(self, key: str) -> None:
         """ """
     def delete_prefix(self, key: str) -> None:
         """ """
-    def put(self, key: str, value: str) -> None:
-        """ """
-    def put_prefix(self, key: str, value: dict) -> None:
+    def keys_prefix(self, key: str) -> list[str]:
         """ """
     def replace(self, key: str, initial_value: str, new_value: str) -> bool:
         """ """

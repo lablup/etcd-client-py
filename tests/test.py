@@ -16,12 +16,12 @@ etcd_client = Client(["http://localhost:2379"])
 #         assert len(vp) == 1
 #         assert vp == {"": "abc"}
 
-#         # r = await etcd.replace("wow", "aaa", "ccc")
-#         # assert r is False
-#         # r = await etcd.replace("wow", "abc", "def")
-#         # assert r is True
-#         # v = await etcd.get("wow")
-#         # assert v == "def"
+#         r = await etcd.replace("wow", "aaa", "ccc")
+#         assert r is False
+#         r = await etcd.replace("wow", "abc", "def")
+#         assert r is True
+#         v = await etcd.get("wow")
+#         assert v == "def"
 
 #         await etcd.delete("wow")
 
@@ -64,15 +64,15 @@ etcd_client = Client(["http://localhost:2379"])
 @pytest.mark.asyncio
 async def test_unquote_for_get_prefix() -> None:
     async with etcd_client.connect() as etcd:
-        # await etcd.put("obj/aa%3Abb/option1", "value1")
-        # await etcd.put("obj/aa%3Abb/option2", "value2")
-        # await etcd.put("obj/aa%3Abb/myhost%2Fpath", "this")
-        # await etcd.put("obj/aa%3Acc", "wow")
+        await etcd.put("obj/aa%3Abb/option1", "value1")
+        await etcd.put("obj/aa%3Abb/option2", "value2")
+        await etcd.put("obj/aa%3Abb/myhost/path", "this")
+        await etcd.put("obj/aa%3Acc", "wow")
 
-        await etcd.put("obj/aa:bb/option1", "value1")
-        await etcd.put("obj/aa:bb/option2", "value2")
-        await etcd.put("obj/aa:bb/myhost-path", "this")
-        await etcd.put("obj/aa:cc", "wow")
+        # await etcd.put("obj/aa:bb/option1", "value1")
+        # await etcd.put("obj/aa:bb/option2", "value2")
+        # await etcd.put("obj/aa:bb/myhost-path", "this")
+        # await etcd.put("obj/aa:cc", "wow")
 
         v = await etcd.get_prefix("obj")
         print("asd", v)
@@ -81,20 +81,20 @@ async def test_unquote_for_get_prefix() -> None:
             "aa:bb": {
                 "option1": "value1",
                 "option2": "value2",
-                "myhostspath": "this",
+                "myhost-path": "this",
             },
             "aa:cc": "wow",
         }
 
-#     v = await etcd.get_prefix("obj/aa%3Abb")
-#     assert dict(v) == {
-#         "option1": "value1",
-#         "option2": "value2",
-#         "myhost/path": "this",
-#     }
+    v = await etcd.get_prefix("obj/aa%3Abb")
+    assert dict(v) == {
+        "option1": "value1",
+        "option2": "value2",
+        "myhost/path": "this",
+    }
 
-#     v = await etcd.get_prefix("obj/aa%3Acc")
-#     assert dict(v) == {"": "wow"}
+    v = await etcd.get_prefix("obj/aa%3Acc")
+    assert dict(v) == {"": "wow"}
 
 
 # @pytest.mark.asyncio

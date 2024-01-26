@@ -1,5 +1,5 @@
 use async_recursion::async_recursion;
-use etcd_client::Client as RustClient;
+use etcd_client::{Client as EtcdClient, Error};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use serde::{Deserialize, Serialize};
@@ -8,7 +8,6 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::error::Error;
 use crate::utils::url::encode_string;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -62,7 +61,7 @@ impl DerefMut for NestedHashMap {
 pub fn convert_pydict_to_nested_map(py: Python, py_dict: &PyDict) -> PyResult<NestedHashMap> {
     let mut map = NestedHashMap::new();
     for (key, value) in py_dict.iter() {
-        let key: String = key.extract::<String>()?;
+        let key = key.extract::<String>()?;
 
         if let Ok(inner_dict) = value.downcast::<PyDict>() {
             map.insert(
@@ -71,6 +70,8 @@ pub fn convert_pydict_to_nested_map(py: Python, py_dict: &PyDict) -> PyResult<Ne
             );
         } else if let Ok(val_str) = value.extract::<String>() {
             map.insert(key, NestedHashMapValue::StringValue(val_str));
+        } else {
+            unreachable!("Invalid type")
         }
     }
     Ok(map)
@@ -78,7 +79,7 @@ pub fn convert_pydict_to_nested_map(py: Python, py_dict: &PyDict) -> PyResult<Ne
 
 #[async_recursion]
 pub async fn put_recursive(
-    client: Arc<Mutex<RustClient>>,
+    client: Arc<Mutex<EtcdClient>>,
     prefix: &str,
     dict: &HashMap<String, NestedHashMapValue>,
 ) -> Result<(), Error> {

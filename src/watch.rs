@@ -1,4 +1,4 @@
-use etcd_client::Client as RustClient;
+use etcd_client::Client as EtcdClient;
 use etcd_client::WatchOptions;
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
@@ -12,14 +12,14 @@ use crate::stream::Stream;
 #[pyclass]
 #[derive(Clone)]
 pub struct Watch {
-    client: Arc<Mutex<RustClient>>,
+    client: Arc<Mutex<EtcdClient>>,
     key: String,
     options: Option<WatchOptions>,
     stream: Option<Arc<Mutex<Stream>>>,
 }
 
 impl Watch {
-    pub fn new(client: Arc<Mutex<RustClient>>, key: String, options: Option<WatchOptions>) -> Self {
+    pub fn new(client: Arc<Mutex<EtcdClient>>, key: String, options: Option<WatchOptions>) -> Self {
         Self {
             client,
             key,

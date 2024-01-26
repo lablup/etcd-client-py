@@ -1,19 +1,19 @@
-use etcd_client::Event as RustEvent;
-use etcd_client::EventType as RustEventType;
+use etcd_client::Event as EtcdClientEvent;
+use etcd_client::EventType as EtcdClientEventType;
 use pyo3::prelude::*;
 use pyo3::pyclass::CompareOp;
 
 #[pyclass]
 #[derive(PartialEq, Eq, Clone)]
-pub struct EventType(RustEventType);
+pub struct EventType(EtcdClientEventType);
 
 #[pymethods]
 impl EventType {
     #[classattr]
-    const PUT: Self = Self(RustEventType::Put);
+    const PUT: Self = Self(EtcdClientEventType::Put);
 
     #[classattr]
-    const DELETE: Self = Self(RustEventType::Delete);
+    const DELETE: Self = Self(EtcdClientEventType::Delete);
 }
 
 #[pyclass]
@@ -47,8 +47,8 @@ impl Event {
     }
 }
 
-impl From<RustEvent> for Event {
-    fn from(event: RustEvent) -> Self {
+impl From<EtcdClientEvent> for Event {
+    fn from(event: EtcdClientEvent) -> Self {
         let kv = event.kv().unwrap();
         let key = String::from_utf8(kv.key().to_owned()).unwrap();
         let value = String::from_utf8(kv.value().to_owned()).unwrap();

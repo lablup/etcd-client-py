@@ -1,5 +1,6 @@
-use etcd_client::Client as RustClient;
+use etcd_client::Client as EtcdClient;
 use etcd_client::{DeleteOptions, GetOptions, WatchOptions};
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_asyncio::tokio::future_into_py;
@@ -13,7 +14,7 @@ use crate::utils::nested_hashmap::{
 use crate::Watch;
 
 #[pyclass]
-pub struct Communicator(pub Arc<Mutex<RustClient>>);
+pub struct Communicator(pub Arc<Mutex<EtcdClient>>);
 
 #[pymethods]
 impl Communicator {
@@ -46,7 +47,8 @@ impl Communicator {
             for kv in response.kvs() {
                 let key = String::from_utf8(kv.key().to_owned())
                     .unwrap()
-                    .strip_prefix(&format!("{}/", prefix))
+                    // .strip_prefix(&format!("{}/", prefix))
+                    .strip_prefix(&prefix)
                     .unwrap()
                     .to_owned();
 
@@ -78,10 +80,7 @@ impl Communicator {
         let dict = convert_pydict_to_nested_map(py, dict).unwrap();
         future_into_py(py, async move {
             let result = put_recursive(client, prefix.as_str(), &dict).await;
-            result
-                .map(|_| ())
-                // .map_err(|e| Error(e).into())
-                .unwrap();
+            result.map(|_| ()).map_err(|e| Error(e)).unwrap();
             Ok(())
         })
     }
@@ -105,33 +104,36 @@ impl Communicator {
         })
     }
 
-    // fn replace<'a>(&'a self, py: Python<'a>, key: String, initial_val: String, new_val: String) -> PyResult<&'a PyAny> {
-    //     let client = self.0.clone();
-
-    //     future_into_py(py, async move {
-    //         let mut client = client.lock().await;
-
-    //         // etcd에서 현재 값을 조회합니다.
-    //         match client.get(key, None).await {
-    //             Ok(response) => {
-    //                 if let Some(key_value) = response.kvs().get(0) {
-    //                     if key_value.value_str().unwrap().to_owned() == initial_val {
-    //                         // 현재 값이 initial_val과 일치하면 new_val로 업데이트합니다.
-    //                         match client.put(key, new_val, None).await {
-    //                             Ok(_) => Ok(true.to_object(py)), // 성공적으로 변경됨
-    //                             Err(e) => Err(PyErr::from(Error::from(e))),
-    //                         }
-    //                     } else {
-    //                         Ok(false.to_object(py)) // 현재 값이 initial_val과 일치하지 않음
-    //                     }
-    //                 } else {
-    //                     Ok(false.to_object(py)) // 키가 존재하지 않음
-    //                 }
-    //             },
-    //             Err(e) => Err(PyErr::from(Error::from(e))),
-    //         }
-    //     })
-    // }
+    fn replace<'a>(
+        &'a self,
+        py: Python<'a>,
+        key: String,
+        initial_val: String,
+        new_val: String,
+    ) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            match client.get(key.clone(), None).await {
+                Ok(response) => {
+                    if let Some(key_value) = response.kvs().get(0) {
+                        if key_value.value_str().unwrap().to_owned() == initial_val {
+                            match client.put(key, new_val, None).await {
+                                Ok(_) => Ok(true), // replace successful
+                                Err(e) => Err(Error(e)),
+                            }
+                        } else {
+                            Ok(false) // initial_val not equal to current value
+                        }
+                    } else {
+                        Ok(false) // Key does not exist
+                    }
+                }
+                Err(e) => Err(Error(e)),
+            }
+            .map_err(|e| PyErr::new::<PyException, _>(format!("{}", e.0)))
+        })
+    }
 
     fn keys_prefix<'a>(&'a self, py: Python<'a>, key: String) -> PyResult<&'a PyAny> {
         let client = self.0.clone();

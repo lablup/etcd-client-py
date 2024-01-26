@@ -1,16 +1,16 @@
-use etcd_client::WatchStream as RustStream;
+use etcd_client::WatchStream;
 use tokio_stream::StreamExt;
 
 use crate::{error::Error, event::Event};
 
 pub struct Stream {
-    stream: RustStream,
+    stream: WatchStream,
     events: Vec<Event>,
     index: usize,
 }
 
 impl Stream {
-    pub fn new(stream: RustStream) -> Self {
+    pub fn new(stream: WatchStream) -> Self {
         Self {
             stream,
             events: Vec::new(),
