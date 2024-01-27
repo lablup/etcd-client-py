@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 
 use crate::condvar::PyCondVar;
 use crate::error::Error;
-use crate::stream::Stream;
+use crate::stream::PyEventStream;
 
 #[pyclass(name = "Watch")]
 #[derive(Clone)]
@@ -16,7 +16,7 @@ pub struct PyWatch {
     client: Arc<Mutex<EtcdClient>>,
     key: String,
     options: Option<WatchOptions>,
-    stream: Option<Arc<Mutex<Stream>>>,
+    event_stream: Option<Arc<Mutex<PyEventStream>>>,
     ready_event: Option<PyCondVar>,
     cleanup_event: Option<PyCondVar>,
 }
@@ -33,32 +33,36 @@ impl PyWatch {
             client,
             key,
             options,
-            stream: None,
+            event_stream: None,
             ready_event,
             cleanup_event,
         }
     }
 
     pub async fn init(&mut self) -> Result<(), Error> {
-        if !self.stream.is_none() {
+        // Already initialized
+        if self.event_stream.is_some() {
             return Ok(());
         }
+
         let mut client = self.client.lock().await;
-        let key = self.key.clone();
-        let options = self.options.clone();
-        let result = client.watch(key, options).await;
-        result
-            .map(|(_, stream)| {
-                self.stream = Some(Arc::new(Mutex::new(Stream::new(stream))));
-                ()
-            })
-            .map_err(|e| Error(e))
+
+        match client.watch(self.key.clone(), self.options.clone()).await {
+            Ok((_, stream)) => {
+                self.event_stream = Some(Arc::new(Mutex::new(PyEventStream::new(stream))));
+
+                let ready_event = self.ready_event.clone();
+                ready_event.as_ref().unwrap()._notify_all().await;
+                Ok(())
+            }
+            Err(error) => return Err(Error(error)),
+        }
     }
 }
 
 #[pymethods]
 impl PyWatch {
-    fn __aiter__(&self) -> Self {
+    fn __aiter__<'a>(&'a self) -> Self {
         self.clone()
     }
 
@@ -67,20 +71,15 @@ impl PyWatch {
         let result = future_into_py(py, async move {
             let mut watch = watch.lock().await;
             watch.init().await?;
-            let stream = watch.stream.as_ref().unwrap().clone();
-            let mut stream = stream.lock().await;
-            let option = stream.next().await;
 
-            let result = match option {
+            let event_stream_lk = watch.event_stream.as_ref().unwrap().clone();
+            let mut event_stream = event_stream_lk.lock().await;
+
+            Ok(match event_stream.next().await {
                 Some(result) => result,
                 None => return Err(PyStopAsyncIteration::new_err(())),
-            };
-            Ok(result?)
+            }?)
         });
-
-        if self.ready_event.is_some() {
-            self.ready_event.as_ref().unwrap().notify_all(py)?;
-        }
 
         Ok(Some(result.unwrap().into()))
     }

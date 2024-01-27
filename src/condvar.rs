@@ -41,3 +41,12 @@ impl PyCondVar {
         })
     }
 }
+
+impl PyCondVar {
+    pub async fn _notify_all(&self) {
+        let inner = self.inner.clone();
+        let condition = self.condition.clone();
+        *condition.lock().await = true;
+        inner.notify_waiters();
+    }
+}

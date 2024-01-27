@@ -17,12 +17,7 @@ pub struct PyEvent {
 impl PyEvent {
     #[new]
     #[pyo3(signature = (key, value, event, prev_value))]
-    fn new(
-        key: String,
-        value: String,
-        event: PyEventType,
-        prev_value: Option<String>,
-    ) -> Self {
+    fn new(key: String, value: String, event: PyEventType, prev_value: Option<String>) -> Self {
         Self {
             key,
             value,
@@ -74,4 +69,19 @@ impl PyEventType {
 
     #[classattr]
     const DELETE: Self = Self(EtcdClientEventType::Delete);
+
+    pub fn __repr__(&self) -> String {
+        match self.0 {
+            EtcdClientEventType::Put => "PUT".to_string(),
+            EtcdClientEventType::Delete => "DELETE".to_string(),
+        }
+    }
+
+    pub fn __richcmp__(&self, py: Python, rhs: &PyEventType, op: CompareOp) -> PyObject {
+        match op {
+            CompareOp::Eq => (self.0 == rhs.0).into_py(py),
+            CompareOp::Ne => (self.0 != rhs.0).into_py(py),
+            _ => py.NotImplemented(),
+        }
+    }
 }

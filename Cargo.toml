@@ -12,6 +12,7 @@ crate-type = ["cdylib"]
 [dependencies]
 async-recursion = "1.0.5"
 etcd-client = "0.12.4"
+lazy_static = "1.4.0"
 pyo3 = { version = "0.20.2", features = ["extension-module", "multiple-pymethods"] }
 pyo3-asyncio = { version = "0.20.0", features = ["tokio-runtime"] }
 serde = { version = "1.0.195", features = ["derive"] }
