@@ -3,20 +3,8 @@ use etcd_client::EventType as EtcdClientEventType;
 use pyo3::prelude::*;
 use pyo3::pyclass::CompareOp;
 
-#[pyclass]
-#[derive(PartialEq, Eq, Clone)]
-pub struct PyEventType(EtcdClientEventType);
-
-#[pymethods]
-impl PyEventType {
-    #[classattr]
-    const PUT: Self = Self(EtcdClientEventType::Put);
-
-    #[classattr]
-    const DELETE: Self = Self(EtcdClientEventType::Delete);
-}
-
-#[pyclass(name = "Event")]
+// Note: Event = namedtuple("Event", "key event value"), not asyncio.Event, threading.Event
+#[pyclass(get_all, name = "Event")]
 #[derive(PartialEq, Eq, Clone)]
 pub struct PyEvent {
     key: String,
@@ -28,17 +16,29 @@ pub struct PyEvent {
 #[pymethods]
 impl PyEvent {
     #[new]
-    #[pyo3(signature = (key, value, prev_value, event))]
-    fn new(key: String, value: String, prev_value: Option<String>, event: PyEventType) -> Self {
+    #[pyo3(signature = (key, value, event, prev_value))]
+    fn new(
+        key: String,
+        value: String,
+        event: PyEventType,
+        prev_value: Option<String>,
+    ) -> Self {
         Self {
             key,
             value,
-            prev_value,
             event,
+            prev_value,
         }
     }
 
-    fn __richcmp__(&self, py: Python<'_>, other: &Self, op: CompareOp) -> PyObject {
+    pub fn __repr__(&self) -> String {
+        format!(
+            "Event(event={:?}, key={}, value={}, prev_value={:?})",
+            self.event, self.key, self.value, self.prev_value
+        )
+    }
+
+    fn __richcmp__(&self, py: Python, other: &Self, op: CompareOp) -> PyObject {
         match op {
             CompareOp::Eq => (self == other).into_py(py),
             CompareOp::Ne => (self != other).into_py(py),
@@ -57,8 +57,21 @@ impl From<EtcdClientEvent> for PyEvent {
         Self {
             key,
             value,
-            prev_value,
             event,
+            prev_value,
         }
     }
+}
+
+#[pyclass(name = "EventType")]
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct PyEventType(EtcdClientEventType);
+
+#[pymethods]
+impl PyEventType {
+    #[classattr]
+    const PUT: Self = Self(EtcdClientEventType::Put);
+
+    #[classattr]
+    const DELETE: Self = Self(EtcdClientEventType::Delete);
 }

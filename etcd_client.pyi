@@ -2,8 +2,7 @@
 Type hints for Native Rust Extension
 """
 
-import asyncio
-from typing import Any, Final, Optional
+from typing import Any, AsyncIterator, Final, Iterator, Optional
 
 class Client:
     """ """
@@ -17,38 +16,55 @@ class Client:
 
 class Watch:
     """ """
+    async def __aiter__(self) -> AsyncIterator["Watch"]:
+        """ """
+    async def __anext__(self) -> "Event":
+        """ """
+
+class CondVar:
+    """ """
+    def __init__(self) -> None:
+        """ """
+    async def wait(self) -> None:
+        """ """
+    async def notify_all(self) -> None:
+        """ """
 
 class Communicator:
-    def get(self, key: str) -> str:
+    async def get(self, key: str) -> str:
         """ """
-    def get_prefix(self, key: str) -> dict:
+    async def get_prefix(self, key: str) -> dict[str, Any]:
         """ """
-    def put(self, key: str, value: str) -> None:
+    async def put(self, key: str, value: str) -> None:
         """ """
-    def put_prefix(self, key: str, value: dict) -> None:
+    async def put_prefix(self, key: str, value: dict[str, Any]) -> None:
         """ """
-    def delete(self, key: str) -> None:
+    async def delete(self, key: str) -> None:
         """ """
-    def delete_prefix(self, key: str) -> None:
+    async def delete_prefix(self, key: str) -> None:
         """ """
-    def keys_prefix(self, key: str) -> list[str]:
+    async def keys_prefix(self, key: str) -> list[str]:
         """ """
-    def replace(self, key: str, initial_value: str, new_value: str) -> bool:
+    async def replace(self, key: str, initial_value: str, new_value: str) -> bool:
         """ """
     def watch(
-        self, key: str, *, once: Optional[bool], ready_event: Optional[asyncio.Event]
+        self, key: str, *, ready_event: Optional["CondVar"] = None
     ) -> "Watch":
         """ """
     def watch_prefix(
-        self, key: str, *, once: Optional[bool], ready_event: Optional[asyncio.Event]
+        self, key: str, *, ready_event: Optional["CondVar"] = None
     ) -> "Watch":
         """ """
 
 class Event:
     """ """
+    key: str
+    value: str
+    event_type: "EventType"
+    prev_value: Optional[str]
 
     def __init__(
-        key: str, value: str, event: "EventType", prev_value: Optional[str]
+        key: str, value: str, event_type: "EventType", prev_value: Optional[str]
     ) -> None: ...
 
 class EventType:

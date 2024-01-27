@@ -6,25 +6,36 @@ use pyo3_asyncio::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use crate::condvar::PyCondVar;
 use crate::error::Error;
 use crate::stream::Stream;
 
-#[pyclass]
+#[pyclass(name = "Watch")]
 #[derive(Clone)]
 pub struct PyWatch {
     client: Arc<Mutex<EtcdClient>>,
     key: String,
     options: Option<WatchOptions>,
     stream: Option<Arc<Mutex<Stream>>>,
+    ready_event: Option<PyCondVar>,
+    cleanup_event: Option<PyCondVar>,
 }
 
 impl PyWatch {
-    pub fn new(client: Arc<Mutex<EtcdClient>>, key: String, options: Option<WatchOptions>) -> Self {
+    pub fn new(
+        client: Arc<Mutex<EtcdClient>>,
+        key: String,
+        options: Option<WatchOptions>,
+        ready_event: Option<PyCondVar>,
+        cleanup_event: Option<PyCondVar>,
+    ) -> Self {
         Self {
             client,
             key,
             options,
             stream: None,
+            ready_event,
+            cleanup_event,
         }
     }
 
@@ -51,7 +62,7 @@ impl PyWatch {
         self.clone()
     }
 
-    fn __anext__<'a>(&'a self, py: Python<'a>) -> Option<PyObject> {
+    fn __anext__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Option<PyObject>> {
         let watch = Arc::new(Mutex::new(self.clone()));
         let result = future_into_py(py, async move {
             let mut watch = watch.lock().await;
@@ -59,12 +70,18 @@ impl PyWatch {
             let stream = watch.stream.as_ref().unwrap().clone();
             let mut stream = stream.lock().await;
             let option = stream.next().await;
+
             let result = match option {
                 Some(result) => result,
                 None => return Err(PyStopAsyncIteration::new_err(())),
             };
             Ok(result?)
         });
-        Some(result.unwrap().into())
+
+        if self.ready_event.is_some() {
+            self.ready_event.as_ref().unwrap().notify_all(py)?;
+        }
+
+        Ok(Some(result.unwrap().into()))
     }
 }

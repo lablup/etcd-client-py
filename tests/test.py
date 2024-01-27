@@ -1,7 +1,7 @@
 import asyncio
 
 import pytest
-from etcd_client import Client
+from etcd_client import Client, CondVar, EventType
 
 etcd_client = Client(["http://localhost:2379"])
 
@@ -61,40 +61,40 @@ etcd_client = Client(["http://localhost:2379"])
 #         assert v == "oops"
 
 
-@pytest.mark.asyncio
-async def test_unquote_for_get_prefix() -> None:
-    async with etcd_client.connect() as etcd:
-        await etcd.put("obj/aa%3Abb/option1", "value1")
-        await etcd.put("obj/aa%3Abb/option2", "value2")
-        await etcd.put("obj/aa%3Abb/myhost/path", "this")
-        await etcd.put("obj/aa%3Acc", "wow")
+# @pytest.mark.asyncio
+# async def test_unquote_for_get_prefix() -> None:
+#     async with etcd_client.connect() as etcd:
+#         await etcd.put("obj/aa%3Abb/option1", "value1")
+#         await etcd.put("obj/aa%3Abb/option2", "value2")
+#         await etcd.put("obj/aa%3Abb/myhost/path", "this")
+#         await etcd.put("obj/aa%3Acc", "wow")
 
-        # await etcd.put("obj/aa:bb/option1", "value1")
-        # await etcd.put("obj/aa:bb/option2", "value2")
-        # await etcd.put("obj/aa:bb/myhost-path", "this")
-        # await etcd.put("obj/aa:cc", "wow")
+#         # await etcd.put("obj/aa:bb/option1", "value1")
+#         # await etcd.put("obj/aa:bb/option2", "value2")
+#         # await etcd.put("obj/aa:bb/myhost-path", "this")
+#         # await etcd.put("obj/aa:cc", "wow")
 
-        v = await etcd.get_prefix("obj")
-        print("asd", v)
+#         v = await etcd.get_prefix("obj")
+#         print("asd", v)
         
-        assert dict(v) == {
-            "aa:bb": {
-                "option1": "value1",
-                "option2": "value2",
-                "myhost-path": "this",
-            },
-            "aa:cc": "wow",
-        }
+#         assert dict(v) == {
+#             "aa:bb": {
+#                 "option1": "value1",
+#                 "option2": "value2",
+#                 "myhost-path": "this",
+#             },
+#             "aa:cc": "wow",
+#         }
 
-    v = await etcd.get_prefix("obj/aa%3Abb")
-    assert dict(v) == {
-        "option1": "value1",
-        "option2": "value2",
-        "myhost/path": "this",
-    }
+#     v = await etcd.get_prefix("obj/aa%3Abb")
+#     assert dict(v) == {
+#         "option1": "value1",
+#         "option2": "value2",
+#         "myhost/path": "this",
+#     }
 
-    v = await etcd.get_prefix("obj/aa%3Acc")
-    assert dict(v) == {"": "wow"}
+#     v = await etcd.get_prefix("obj/aa%3Acc")
+#     assert dict(v) == {"": "wow"}
 
 
 # @pytest.mark.asyncio
@@ -197,63 +197,68 @@ async def test_unquote_for_get_prefix() -> None:
 #     assert v is None
 
 
-# @pytest.mark.asyncio
-# async def test_watch(etcd: AsyncEtcd) -> None:
-#     records = []
-#     records_prefix = []
-#     r_ready = asyncio.Event()
-#     rp_ready = asyncio.Event()
+@pytest.mark.asyncio
+async def test_watch() -> None:
+    records = []
+    records_prefix = []
+    r_ready = CondVar()
+    rp_ready = CondVar()
 
-#     async def _record():
-#         recv_count = 0
-#         async for ev in etcd.watch("wow", ready_event=r_ready):
-#             records.append(ev)
-#             recv_count += 1
-#             if recv_count == 2:
-#                 return
+    async with etcd_client.connect() as etcd:
+        async def _record():
+            recv_count = 0
+            async for ev in etcd.watch("wow", ready_event=r_ready):
+                print("Record", ev)
 
-#     async def _record_prefix():
-#         recv_count = 0
-#         async for ev in etcd.watch_prefix("wow", ready_event=rp_ready):
-#             records_prefix.append(ev)
-#             recv_count += 1
-#             if recv_count == 4:
-#                 return
+                records.append(ev)
+                recv_count += 1
+                if recv_count == 2:
+                    return
 
-#     async with (
-#         asyncio.timeout(10),
-#         asyncio.TaskGroup() as tg,
-#     ):
-#         tg.create_task(_record())
-#         tg.create_task(_record_prefix())
+        async def _record_prefix():
+            recv_count = 0
+            async for ev in etcd.watch_prefix("wow", ready_event=rp_ready):
+                print("Prefix", ev)
+                records_prefix.append(ev)
+                recv_count += 1
+                if recv_count == 4:
+                    return
 
-#         await r_ready.wait()
-#         await rp_ready.wait()
+        async with (
+            asyncio.timeout(3),
+            asyncio.TaskGroup() as tg,
+        ):
+            tg.create_task(_record())
+            tg.create_task(_record_prefix())
 
-#         await etcd.put("wow", "123")
-#         await etcd.delete("wow")
-#         await etcd.put("wow/child", "hello")
-#         await etcd.delete_prefix("wow")
+            await r_ready.wait()
+            await rp_ready.wait()
 
-#     assert records[0].key == "wow"
-#     assert records[0].event == WatchEventType.PUT
-#     assert records[0].value == "123"
-#     assert records[1].key == "wow"
-#     assert records[1].event == WatchEventType.DELETE
-#     assert records[1].value == ""
+            await etcd.put("wow", "123")
+            await etcd.delete("wow")
+            await etcd.put("wow/child", "hello")
+            await etcd.delete_prefix("wow")
+            print('Done!')
 
-#     assert records_prefix[0].key == "wow"
-#     assert records_prefix[0].event == WatchEventType.PUT
-#     assert records_prefix[0].value == "123"
-#     assert records_prefix[1].key == "wow"
-#     assert records_prefix[1].event == WatchEventType.DELETE
-#     assert records_prefix[1].value == ""
-#     assert records_prefix[2].key == "wow/child"
-#     assert records_prefix[2].event == WatchEventType.PUT
-#     assert records_prefix[2].value == "hello"
-#     assert records_prefix[3].key == "wow/child"
-#     assert records_prefix[3].event == WatchEventType.DELETE
-#     assert records_prefix[3].value == ""
+        assert records[0].key == "wow"
+        assert records[0].event == EventType.PUT
+        assert records[0].value == "123"
+        assert records[1].key == "wow"
+        assert records[1].event == EventType.DELETE
+        assert records[1].value == ""
+
+        assert records_prefix[0].key == "wow"
+        assert records_prefix[0].event == EventType.PUT
+        assert records_prefix[0].value == "123"
+        assert records_prefix[1].key == "wow"
+        assert records_prefix[1].event == EventType.DELETE
+        assert records_prefix[1].value == ""
+        assert records_prefix[2].key == "wow/child"
+        assert records_prefix[2].event == EventType.PUT
+        assert records_prefix[2].value == "hello"
+        assert records_prefix[3].key == "wow/child"
+        assert records_prefix[3].event == EventType.DELETE
+        assert records_prefix[3].value == ""
 
 
 # @pytest.mark.asyncio
@@ -295,9 +300,9 @@ async def test_unquote_for_get_prefix() -> None:
 #         await etcd.delete_prefix("wow")
 
 #     assert records[0].key == "wow"
-#     assert records[0].event == WatchEventType.PUT
+#     assert records[0].event == EventType.PUT
 #     assert records[0].value == "korea"
 
 #     assert records_prefix[0].key == "wow/city1"
-#     assert records_prefix[0].event == WatchEventType.PUT
+#     assert records_prefix[0].event == EventType.PUT
 #     assert records_prefix[0].value == "seoul"

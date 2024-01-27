@@ -7,6 +7,7 @@ use pyo3_asyncio::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use crate::condvar::PyCondVar;
 use crate::error::Error;
 use crate::utils::nested_hashmap::{
     convert_pydict_to_nested_map, insert_into_map, put_recursive, NestedHashMap,
@@ -155,14 +156,24 @@ impl PyCommunicator {
         })
     }
 
-    fn watch(&self, key: String) -> PyWatch {
+    fn watch(
+        &self,
+        key: String,
+        ready_event: Option<PyCondVar>,
+        cleanup_event: Option<PyCondVar>,
+    ) -> PyWatch {
         let client = self.0.clone();
-        PyWatch::new(client, key, None)
+        PyWatch::new(client, key, None, ready_event, cleanup_event)
     }
 
-    fn watch_prefix(&self, key: String) -> PyWatch {
+    fn watch_prefix(
+        &self,
+        key: String,
+        ready_event: Option<PyCondVar>,
+        cleanup_event: Option<PyCondVar>,
+    ) -> PyWatch {
         let client = self.0.clone();
         let options = WatchOptions::new().with_prefix();
-        PyWatch::new(client, key, Some(options))
+        PyWatch::new(client, key, Some(options), ready_event, cleanup_event)
     }
 }

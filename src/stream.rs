@@ -1,8 +1,10 @@
 use etcd_client::WatchStream;
+use pyo3::pyclass;
 use tokio_stream::StreamExt;
 
 use crate::{error::Error, event::PyEvent};
 
+#[pyclass]
 pub struct Stream {
     stream: WatchStream,
     events: Vec<PyEvent>,
