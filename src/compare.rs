@@ -42,31 +42,31 @@ pub struct PyCompare(pub Compare);
 #[pymethods]
 impl PyCompare {
     #[staticmethod]
-    fn version(key: Vec<u8>, cmp: PyCompareOp, version: i64) -> PyResult<Self> {
+    fn version(key: String, cmp: PyCompareOp, version: i64) -> PyResult<Self> {
         Ok(PyCompare(Compare::version(key, cmp.0, version)))
     }
 
     #[staticmethod]
-    fn create_revision(key: Vec<u8>, cmp: PyCompareOp, revision: i64) -> PyResult<Self> {
+    fn create_revision(key: String, cmp: PyCompareOp, revision: i64) -> PyResult<Self> {
         Ok(PyCompare(Compare::create_revision(key, cmp.0, revision)))
     }
 
     #[staticmethod]
-    fn mod_revision(key: Vec<u8>, cmp: PyCompareOp, revision: i64) -> PyResult<Self> {
+    fn mod_revision(key: String, cmp: PyCompareOp, revision: i64) -> PyResult<Self> {
         Ok(PyCompare(Compare::mod_revision(key, cmp.0, revision)))
     }
 
     #[staticmethod]
-    fn value(key: Vec<u8>, cmp: PyCompareOp, value: Vec<u8>) -> PyResult<Self> {
+    fn value(key: String, cmp: PyCompareOp, value: String) -> PyResult<Self> {
         Ok(PyCompare(Compare::value(key, cmp.0, value)))
     }
 
     #[staticmethod]
-    fn lease(key: Vec<u8>, cmp: PyCompareOp, lease: i64) -> PyResult<Self> {
+    fn lease(key: String, cmp: PyCompareOp, lease: i64) -> PyResult<Self> {
         Ok(PyCompare(Compare::lease(key, cmp.0, lease)))
     }
 
-    fn with_range(&self, end: Vec<u8>) -> PyResult<Self> {
+    fn with_range(&self, end: String) -> PyResult<Self> {
         Ok(PyCompare(self.0.clone().with_range(end)))
     }
 

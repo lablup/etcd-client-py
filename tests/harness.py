@@ -157,7 +157,7 @@ class AsyncEtcd:
         self.watch_reconnect_intvl = watch_reconnect_intvl
 
         self.etcd = EtcdClient(
-            ["http://localhost:2379"],
+            [f"http://{addr.host}:{addr.port}"],
             # credentials=self._creds,
             # encoding=self.encoding,
         )
@@ -425,27 +425,16 @@ class AsyncEtcd:
         scope_prefix = self._merge_scope_prefix_map(scope_prefix_map)[scope]
         mangled_key = self._mangle_key(f"{_slash(scope_prefix)}{key}")
 
-        # def _txn(success: EtcdTransactionAction, _):
-        #     success.put(mangled_key, new_val)
-
-        # async with self.etcd.connect() as communicator:
-        #     _, success = await communicator.txn_compare(
-        #         [
-        #             CompareKey(mangled_key).value == initial_val,
-        #         ],
-        #         _txn,
-        #     )
-        #     return success
-
-        # TODO: Test below transaction codes
         async with self.etcd.connect() as communicator:
             put_action = TxnOp.put(mangled_key, new_val)
             
             txn = EtcdTransactionAction()
 
-            communicator.txn(txn.when([
+            result = await communicator.txn(txn.when([
                 CompareKey.value(mangled_key, CompareOp.EQUAL, initial_val),
-            ]).and_then(list[put_action]).or_else([]))
+            ]).and_then([put_action]).or_else([]))
+
+            return result.succeeded()
 
     async def delete(
         self,

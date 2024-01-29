@@ -2,63 +2,64 @@ import asyncio
 
 import pytest
 from etcd_client import Client, CondVar, WatchEventType
-
-etcd_client = Client(["http://localhost:2379"])
-
-# @pytest.mark.asyncio
-# async def test_basic_crud() -> None:
-#     async with etcd_client.connect() as etcd:
-#         await etcd.put("wow", "abc")
-
-#         v = await etcd.get("wow")
-#         assert v == "abc"
-#         vp = await etcd.get_prefix("wow")
-#         assert len(vp) == 1
-#         assert vp == {"": "abc"}
-
-#         r = await etcd.replace("wow", "aaa", "ccc")
-#         assert r is False
-#         r = await etcd.replace("wow", "abc", "def")
-#         assert r is True
-#         v = await etcd.get("wow")
-#         assert v == "def"
-
-#         await etcd.delete("wow")
-
-#         v = await etcd.get("wow")
-#         assert v is None
-#         vp = await etcd.get_prefix("wow")
-#         assert len(vp) == 0
+from tests.harness import AsyncEtcd, HostPortPair
 
 
 @pytest.mark.asyncio
-async def test_quote_for_put_prefix() -> None:
-    async with etcd_client.connect() as etcd:
-        await etcd.put_prefix(
-            "data",
-            {
-                "aa:bb": {
-                    "option1": "value1",
-                    "option2": "value2",
-                    "myhost/path": "this",
-                },
-                "aa:cc": "wow",
-                "aa:dd": {
-                    "": "oops",
-                },
-            },
-        )
+async def test_basic_crud(etcd: AsyncEtcd) -> None:
+    etcd = await etcd
 
-        v = await etcd.get("data/aa%3Abb/option1")
-        assert v == "value1"
-        v = await etcd.get("data/aa%3Abb/option2")
-        assert v == "value2"
-        v = await etcd.get("data/aa%3Abb/myhost%2Fpath")
-        assert v == "this"
-        v = await etcd.get("data/aa%3Acc")
-        assert v == "wow"
-        v = await etcd.get("data/aa%3Add")
-        assert v == "oops"
+    await etcd.put("wow", "abc")
+
+    v = await etcd.get("wow")
+    assert v == "abc"
+    vp = await etcd.get_prefix("wow")
+    assert len(vp) == 1
+    assert vp == {"": "abc"}
+
+    r = await etcd.replace("wow", "aaa", "ccc")
+    assert r is False
+    r = await etcd.replace("wow", "abc", "def")
+    assert r is True
+    v = await etcd.get("wow")
+    assert v == "def"
+
+    await etcd.delete("wow")
+
+    v = await etcd.get("wow")
+    assert v is None
+    vp = await etcd.get_prefix("wow")
+    assert len(vp) == 0
+
+
+# @pytest.mark.asyncio
+# async def test_quote_for_put_prefix() -> None:
+#     async with etcd_client.connect() as etcd:
+#         await etcd.put_prefix(
+#             "data",
+#             {
+#                 "aa:bb": {
+#                     "option1": "value1",
+#                     "option2": "value2",
+#                     "myhost/path": "this",
+#                 },
+#                 "aa:cc": "wow",
+#                 "aa:dd": {
+#                     "": "oops",
+#                 },
+#             },
+#         )
+
+#         v = await etcd.get("data/aa%3Abb/option1")
+#         assert v == "value1"
+#         v = await etcd.get("data/aa%3Abb/option2")
+#         assert v == "value2"
+#         v = await etcd.get("data/aa%3Abb/myhost%2Fpath")
+#         assert v == "this"
+#         v = await etcd.get("data/aa%3Acc")
+#         assert v == "wow"
+#         v = await etcd.get("data/aa%3Add")
+#         assert v == "oops"
 
 
 # @pytest.mark.asyncio

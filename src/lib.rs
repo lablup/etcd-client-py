@@ -13,11 +13,13 @@ mod watch;
 
 use client::PyClient;
 use communicator::PyCommunicator;
+use compare::{PyCompare, PyCompareOp};
 use condvar::PyCondVar;
 use error::ClientError;
 use event::{PyWatchEvent, PyWatchEventType};
 use pyo3::prelude::*;
-use transaction::PyTxn;
+use transaction::{PyTxn, PyTxnOp};
+use txn_response::PyTxnResponse;
 use watch::PyWatch;
 
 #[pymodule]
@@ -30,7 +32,12 @@ fn etcd_client(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_class::<PyWatchEventType>()?;
 
     module.add_class::<PyCondVar>()?;
+    module.add_class::<PyCompare>()?;
+    module.add_class::<PyCompareOp>()?;
+
     module.add_class::<PyTxn>()?;
+    module.add_class::<PyTxnOp>()?;
+    module.add_class::<PyTxnResponse>()?;
 
     module.add("ClientError", py.get_type::<ClientError>())?;
     Ok(())

@@ -1,9 +1,10 @@
-use etcd_client::Client as EtcdClient;
+use etcd_client::{Client as EtcdClient, PutOptions};
 use etcd_client::{DeleteOptions, GetOptions, WatchOptions};
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3_asyncio::tokio::future_into_py;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -11,9 +12,6 @@ use crate::condvar::PyCondVar;
 use crate::error::Error;
 use crate::transaction::PyTxn;
 use crate::txn_response::PyTxnResponse;
-use crate::utils::nested_hashmap::{
-    convert_pydict_to_nested_map, insert_into_map, put_recursive, NestedHashMap,
-};
 use crate::PyWatch;
 
 #[pyclass(name = "Communicator")]
@@ -44,23 +42,19 @@ impl PyCommunicator {
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let options = GetOptions::new().with_prefix();
-            let response = client.get(prefix.clone(), Some(options)).await.unwrap();
-
-            let mut result = NestedHashMap::new();
-            for kv in response.kvs() {
-                let key = String::from_utf8(kv.key().to_owned())
-                    .unwrap()
-                    // .strip_prefix(&format!("{}/", prefix))
-                    .strip_prefix(&prefix)
-                    .unwrap()
-                    .to_owned();
-
-                let value = String::from_utf8(kv.value().to_owned()).unwrap();
-                let parts: Vec<&str> = key.split('/').collect();
-                insert_into_map(&mut result, &parts, value);
-            }
-
-            Ok(result)
+            let result = client.get(prefix, Some(options)).await;
+            result
+                .map(|response| {
+                    let mut result = HashMap::new();
+                    let kvs = response.kvs();
+                    for kv in kvs {
+                        let key = String::from_utf8(kv.key().to_owned()).unwrap();
+                        let value = String::from_utf8(kv.value().to_owned()).unwrap();
+                        result.insert(key, value);
+                    }
+                    result
+                })
+                .map_err(|e| Error(e).into())
         })
     }
 
@@ -77,14 +71,14 @@ impl PyCommunicator {
         &'a self,
         py: Python<'a>,
         prefix: String,
-        dict: &PyDict,
+        value: String,
     ) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
-        let dict = convert_pydict_to_nested_map(py, dict).unwrap();
         future_into_py(py, async move {
-            let result = put_recursive(client, prefix.as_str(), &dict).await;
-            result.map(|_| ()).map_err(|e| Error(e)).unwrap();
-            Ok(())
+            let mut client = client.lock().await;
+            let options = PutOptions::new().with_prev_key();
+            let result = client.put(prefix, value, Some(options)).await;
+            result.map(|_| ()).map_err(|e| Error(e).into())
         })
     }
 
