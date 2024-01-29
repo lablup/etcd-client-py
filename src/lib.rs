@@ -8,7 +8,6 @@ mod request_generator;
 mod stream;
 mod transaction;
 mod txn_response;
-mod utils;
 mod watch;
 
 use client::PyClient;

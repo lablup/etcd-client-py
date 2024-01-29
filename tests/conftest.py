@@ -37,7 +37,7 @@ async def gateway_etcd():
     )
     try:
         await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        yield etcd
+        return etcd
     finally:
         await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
         del etcd
