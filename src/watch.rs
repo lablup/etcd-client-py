@@ -1,11 +1,12 @@
 use etcd_client::Client as EtcdClient;
 use etcd_client::WatchOptions;
+use etcd_client::Watcher;
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
 use pyo3_asyncio::tokio::future_into_py;
-use tokio::sync::Notify;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use tokio::sync::Notify;
 
 use crate::condvar::PyCondVar;
 use crate::error::Error;
@@ -16,7 +17,9 @@ use crate::stream::PyEventStream;
 pub struct PyWatch {
     client: Arc<Mutex<EtcdClient>>,
     key: String,
+    once: bool,
     options: Option<WatchOptions>,
+    watcher: Arc<Mutex<Option<Watcher>>>,
     event_stream_init_notifier: Arc<Notify>,
     event_stream: Arc<Mutex<Option<PyEventStream>>>,
     ready_event: Option<PyCondVar>,
@@ -27,6 +30,7 @@ impl PyWatch {
     pub fn new(
         client: Arc<Mutex<EtcdClient>>,
         key: String,
+        once: bool,
         options: Option<WatchOptions>,
         ready_event: Option<PyCondVar>,
         cleanup_event: Option<PyCondVar>,
@@ -34,9 +38,11 @@ impl PyWatch {
         Self {
             client,
             key,
+            once,
             options,
             event_stream_init_notifier: Arc::new(Notify::new()),
             event_stream: Arc::new(Mutex::new(None)),
+            watcher: Arc::new(Mutex::new(None)),
             ready_event,
             cleanup_event,
         }
@@ -54,8 +60,10 @@ impl PyWatch {
         let mut client = self.client.lock().await;
 
         match client.watch(self.key.clone(), self.options.clone()).await {
-            Ok((_, stream)) => {
-                *event_stream = Some(PyEventStream::new(stream));
+            Ok((watcher, stream)) => {
+                *event_stream = Some(PyEventStream::new(stream, self.once));
+                *self.watcher.lock().await = Some(watcher);
+
                 event_stream_init_notifier.notify_waiters();
 
                 if let Some(ready_event) = &self.ready_event {
@@ -63,7 +71,7 @@ impl PyWatch {
                 }
                 Ok(())
             }
-            Err(error) => return Err(Error(error)),
+            Err(error) => Err(Error(error)),
         }
     }
 }
@@ -77,25 +85,37 @@ impl PyWatch {
     fn __anext__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Option<PyObject>> {
         let watch = Arc::new(Mutex::new(self.clone()));
         let event_stream_init_notifier = self.event_stream_init_notifier.clone();
+        let watcher = self.watcher.clone();
+        let once = self.once;
 
-        let result = future_into_py(py, async move {
-            let mut watch = watch.lock().await;
-            watch.init().await?;
+        Ok(Some(
+            future_into_py(py, async move {
+                let mut watch = watch.lock().await;
+                watch.init().await?;
 
-            let mut event_stream = watch.event_stream.lock().await;
+                let mut event_stream = watch.event_stream.lock().await;
 
-            if event_stream.is_none() {
-                event_stream_init_notifier.notified().await;
-            }
+                if event_stream.is_none() {
+                    event_stream_init_notifier.notified().await;
+                }
 
-            let event_stream = event_stream.as_mut().unwrap();
+                let event_stream = event_stream.as_mut().unwrap();
 
-            Ok(match event_stream.next().await {
-                Some(result) => result,
-                None => return Err(PyStopAsyncIteration::new_err(()))
-            }?)
-        });
+                let event = match event_stream.next().await {
+                    Some(result) => {
+                        if once {
+                            let mut watcher = watcher.lock().await;
+                            watcher.as_mut().unwrap().cancel().await.unwrap();
+                        }
 
-        Ok(Some(result.unwrap().into()))
+                        result
+                    },
+                    None => return Err(PyStopAsyncIteration::new_err(())),
+                }?;
+
+                Ok(event)
+            })?
+            .into(),
+        ))
     }
 }

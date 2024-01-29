@@ -9,18 +9,24 @@ pub struct PyEventStream {
     stream: WatchStream,
     events: Vec<PyEvent>,
     index: usize,
+    once: bool
 }
 
 impl PyEventStream {
-    pub fn new(stream: WatchStream) -> Self {
+    pub fn new(stream: WatchStream, once: bool) -> Self {
         Self {
             stream,
             events: Vec::new(),
             index: 0,
+            once,
         }
     }
 
     pub async fn next(&mut self) -> Option<Result<PyEvent, Error>> {
+        if self.once && self.index > 0 {
+            return None;
+        }
+
         if self.index < self.events.len() {
             let event = self.events[self.index].clone();
             self.index += 1;
@@ -42,10 +48,8 @@ impl PyEventStream {
                     None
                 }
             }
-            Some(Err(error)) => {
-                Some(Err(Error(error)))
-            }
-            None => None
+            Some(Err(error)) => Some(Err(Error(error))),
+            None => None,
         }
     }
 }

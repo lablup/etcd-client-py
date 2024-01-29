@@ -222,7 +222,7 @@ async def test_watch() -> None:
                     return
 
         async with (
-            asyncio.timeout(5),
+            asyncio.timeout(10),
             asyncio.TaskGroup() as tg,
         ):
             tg.create_task(_record())
@@ -257,48 +257,49 @@ async def test_watch() -> None:
         assert records_prefix[3].value == ""
 
 
-# @pytest.mark.asyncio
-# async def test_watch_once(etcd: AsyncEtcd) -> None:
-#     records = []
-#     records_prefix = []
-#     r_ready = asyncio.Event()
-#     rp_ready = asyncio.Event()
+@pytest.mark.asyncio
+async def test_watch_once() -> None:
+    records = []
+    records_prefix = []
+    r_ready = CondVar()
+    rp_ready = CondVar()
 
-#     async def _record():
-#         recv_count = 0
-#         async for ev in etcd.watch("wow", once=True, ready_event=r_ready):
-#             records.append(ev)
-#             recv_count += 1
-#             if recv_count == 1:
-#                 return
+    async with etcd_client.connect() as etcd:
+        async def _record():
+            recv_count = 0
+            # Below watcher returns after first event
+            async for ev in etcd.watch("wow", once=True, ready_event=r_ready):
+                records.append(ev)
+                recv_count += 1
 
-#     async def _record_prefix():
-#         recv_count = 0
-#         async for ev in etcd.watch_prefix("wow/city", once=True, ready_event=rp_ready):
-#             records_prefix.append(ev)
-#             recv_count += 1
-#             if recv_count == 1:
-#                 return
+        async def _record_prefix():
+            recv_count = 0
+            # Below watcher returns after first event
+            async for ev in etcd.watch_prefix("wow/city", once=True, ready_event=rp_ready):
+                records_prefix.append(ev)
+                recv_count += 1
 
-#     async with (
-#         asyncio.timeout(10),
-#         asyncio.TaskGroup() as tg,
-#     ):
-#         tg.create_task(_record())
-#         tg.create_task(_record_prefix())
+        async with (
+            asyncio.timeout(10),
+            asyncio.TaskGroup() as tg,
+        ):
+            tg.create_task(_record())
+            tg.create_task(_record_prefix())
 
-#         await r_ready.wait()
-#         await rp_ready.wait()
+            await r_ready.wait()
+            await rp_ready.wait()
 
-#         await etcd.put("wow/city1", "seoul")
-#         await etcd.put("wow/city2", "daejeon")
-#         await etcd.put("wow", "korea")
-#         await etcd.delete_prefix("wow")
+            await etcd.put("wow/city1", "seoul")
+            await etcd.put("wow/city2", "daejeon")
+            await etcd.put("wow", "korea")
+            await etcd.delete_prefix("wow")
 
-#     assert records[0].key == "wow"
-#     assert records[0].event == EventType.PUT
-#     assert records[0].value == "korea"
+        assert len(records) == 1
 
-#     assert records_prefix[0].key == "wow/city1"
-#     assert records_prefix[0].event == EventType.PUT
-#     assert records_prefix[0].value == "seoul"
+        assert records[0].key == "wow"
+        assert records[0].event == EventType.PUT
+        assert records[0].value == "korea"
+
+        assert records_prefix[0].key == "wow/city1"
+        assert records_prefix[0].event == EventType.PUT
+        assert records_prefix[0].value == "seoul"

@@ -16,6 +16,7 @@ class Client:
 
 class Watch:
     """ """
+
     async def __aiter__(self) -> AsyncIterator["Watch"]:
         """ """
     async def __anext__(self) -> "Event":
@@ -23,6 +24,7 @@ class Watch:
 
 class CondVar:
     """ """
+
     def __init__(self) -> None:
         """ """
     async def wait(self) -> None:
@@ -48,16 +50,25 @@ class Communicator:
     async def replace(self, key: str, initial_value: str, new_value: str) -> bool:
         """ """
     def watch(
-        self, key: str, *, ready_event: Optional["CondVar"] = None
+        self,
+        key: str,
+        *,
+        once: Optional[bool] = False,
+        ready_event: Optional["CondVar"] = None,
     ) -> "Watch":
         """ """
     def watch_prefix(
-        self, key: str, *, ready_event: Optional["CondVar"] = None
+        self,
+        key: str,
+        *,
+        once: Optional[bool] = False,
+        ready_event: Optional["CondVar"] = None,
     ) -> "Watch":
         """ """
 
 class Event:
     """ """
+
     key: str
     value: str
     event_type: "EventType"

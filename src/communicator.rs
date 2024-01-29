@@ -159,21 +159,25 @@ impl PyCommunicator {
     fn watch(
         &self,
         key: String,
+        once: Option<bool>,
         ready_event: Option<PyCondVar>,
         cleanup_event: Option<PyCondVar>,
     ) -> PyWatch {
         let client = self.0.clone();
-        PyWatch::new(client, key, None, ready_event, cleanup_event)
+        let once = once.unwrap_or(false);
+        PyWatch::new(client, key, once, None, ready_event, cleanup_event)
     }
 
     fn watch_prefix(
         &self,
         key: String,
+        once: Option<bool>,
         ready_event: Option<PyCondVar>,
         cleanup_event: Option<PyCondVar>,
     ) -> PyWatch {
         let client = self.0.clone();
+        let once = once.unwrap_or(false);
         let options = WatchOptions::new().with_prefix();
-        PyWatch::new(client, key, Some(options), ready_event, cleanup_event)
+        PyWatch::new(client, key, once, Some(options), ready_event, cleanup_event)
     }
 }
