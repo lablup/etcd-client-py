@@ -10,7 +10,7 @@ use tokio::sync::Notify;
 
 use crate::condvar::PyCondVar;
 use crate::error::Error;
-use crate::stream::PyEventStream;
+use crate::stream::PyWatchEventStream;
 
 #[pyclass(name = "Watch")]
 #[derive(Clone)]
@@ -21,7 +21,7 @@ pub struct PyWatch {
     options: Option<WatchOptions>,
     watcher: Arc<Mutex<Option<Watcher>>>,
     event_stream_init_notifier: Arc<Notify>,
-    event_stream: Arc<Mutex<Option<PyEventStream>>>,
+    event_stream: Arc<Mutex<Option<PyWatchEventStream>>>,
     ready_event: Option<PyCondVar>,
     cleanup_event: Option<PyCondVar>,
 }
@@ -61,7 +61,7 @@ impl PyWatch {
 
         match client.watch(self.key.clone(), self.options.clone()).await {
             Ok((watcher, stream)) => {
-                *event_stream = Some(PyEventStream::new(stream, self.once));
+                *event_stream = Some(PyWatchEventStream::new(stream, self.once));
                 *self.watcher.lock().await = Some(watcher);
 
                 event_stream_init_notifier.notify_waiters();

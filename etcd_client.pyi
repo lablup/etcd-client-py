@@ -2,7 +2,55 @@
 Type hints for Native Rust Extension
 """
 
-from typing import Any, AsyncIterator, Final, Iterator, Optional
+from typing import Any, AsyncIterator, Final, Optional
+
+class CompareOp:
+    """ """
+
+    EQUAL: Final[Any]
+    """
+    """
+    NOT_EQUAL: Final[Any]
+    """
+    """
+    GREATER: Final[Any]
+    """
+    """
+    LESS: Final[Any]
+    """
+    """
+
+class Compare:
+    @classmethod
+    def version(key: str, cmp: "CompareOp", version: int) -> "Compare": ...
+    @classmethod
+    def create_revision(key: str, cmp: "CompareOp", revision: int) -> "Compare": ...
+    @classmethod
+    def mod_revision(key: str, cmp: "CompareOp", revision: int) -> "Compare": ...
+    @classmethod
+    def value(key: str, cmp: "CompareOp", value: str) -> "Compare": ...
+    @classmethod
+    def lease(key: str, cmp: "CompareOp", lease: int) -> "Compare": ...
+    def with_range(end: list[int]) -> "Compare": ...
+    def with_prefix() -> "Compare": ...
+
+class Txn:
+    def when(self, compares: list["Compare"]) -> "Txn": ...
+    def and_then(self, operations: list["TxnOp"]) -> "Txn": ...
+    def or_else(self, operations: list["TxnOp"]) -> "Txn": ...
+
+class TxnOp:
+    @classmethod
+    def get(key: str) -> "TxnOp": ...
+    @classmethod
+    def put(key: str, value: str) -> "TxnOp": ...
+    @classmethod
+    def delete(key: str) -> "TxnOp": ...
+    @classmethod
+    def txn(txn: "Txn") -> "TxnOp": ...
+
+class TxnResponse:
+    def succeeded(self) -> bool: ...
 
 class Client:
     """ """
@@ -19,7 +67,7 @@ class Watch:
 
     async def __aiter__(self) -> AsyncIterator["Watch"]:
         """ """
-    async def __anext__(self) -> "Event":
+    async def __anext__(self) -> "WatchEvent":
         """ """
 
 class CondVar:
@@ -40,6 +88,8 @@ class Communicator:
     async def put(self, key: str, value: str) -> None:
         """ """
     async def put_prefix(self, key: str, value: dict[str, Any]) -> None:
+        """ """
+    async def txn(self, txn: "Txn") -> "TxnResponse":
         """ """
     async def delete(self, key: str) -> None:
         """ """
@@ -66,19 +116,19 @@ class Communicator:
     ) -> "Watch":
         """ """
 
-class Event:
+class WatchEvent:
     """ """
 
     key: str
     value: str
-    event_type: "EventType"
+    event_type: "WatchEventType"
     prev_value: Optional[str]
 
     def __init__(
-        key: str, value: str, event_type: "EventType", prev_value: Optional[str]
+        key: str, value: str, event_type: "WatchEventType", prev_value: Optional[str]
     ) -> None: ...
 
-class EventType:
+class WatchEventType:
     """ """
 
     PUT: Final[Any]

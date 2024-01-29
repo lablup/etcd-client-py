@@ -1,7 +1,7 @@
 import asyncio
 
 import pytest
-from etcd_client import Client, CondVar, EventType
+from etcd_client import Client, CondVar, WatchEventType
 
 etcd_client = Client(["http://localhost:2379"])
 
@@ -237,23 +237,23 @@ async def test_quote_for_put_prefix() -> None:
 #             await etcd.delete_prefix("wow")
 
 #         assert records[0].key == "wow"
-#         assert records[0].event == EventType.PUT
+#         assert records[0].event == WatchEventType.PUT
 #         assert records[0].value == "123"
 #         assert records[1].key == "wow"
-#         assert records[1].event == EventType.DELETE
+#         assert records[1].event == WatchEventType.DELETE
 #         assert records[1].value == ""
 
 #         assert records_prefix[0].key == "wow"
-#         assert records_prefix[0].event == EventType.PUT
+#         assert records_prefix[0].event == WatchEventType.PUT
 #         assert records_prefix[0].value == "123"
 #         assert records_prefix[1].key == "wow"
-#         assert records_prefix[1].event == EventType.DELETE
+#         assert records_prefix[1].event == WatchEventType.DELETE
 #         assert records_prefix[1].value == ""
 #         assert records_prefix[2].key == "wow/child"
-#         assert records_prefix[2].event == EventType.PUT
+#         assert records_prefix[2].event == WatchEventType.PUT
 #         assert records_prefix[2].value == "hello"
 #         assert records_prefix[3].key == "wow/child"
-#         assert records_prefix[3].event == EventType.DELETE
+#         assert records_prefix[3].event == WatchEventType.DELETE
 #         assert records_prefix[3].value == ""
 
 
@@ -297,9 +297,9 @@ async def test_quote_for_put_prefix() -> None:
 #         assert len(records) == 1
 
 #         assert records[0].key == "wow"
-#         assert records[0].event == EventType.PUT
+#         assert records[0].event == WatchEventType.PUT
 #         assert records[0].value == "korea"
 
 #         assert records_prefix[0].key == "wow/city1"
-#         assert records_prefix[0].event == EventType.PUT
+#         assert records_prefix[0].event == WatchEventType.PUT
 #         assert records_prefix[0].value == "seoul"

@@ -9,6 +9,8 @@ use tokio::sync::Mutex;
 
 use crate::condvar::PyCondVar;
 use crate::error::Error;
+use crate::transaction::PyTxn;
+use crate::txn_response::PyTxnResponse;
 use crate::utils::nested_hashmap::{
     convert_pydict_to_nested_map, insert_into_map, put_recursive, NestedHashMap,
 };
@@ -106,35 +108,16 @@ impl PyCommunicator {
         })
     }
 
-    fn delete_multi<'a>(&'a self, py: Python<'a>, keys: Vec<String>) -> PyResult<&'a PyAny> {
+    fn txn<'a>(&'a self, py: Python<'a>, txn: PyTxn) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
-        todo!();
 
-        // future_into_py(py, async move {
-        // let mut client = client.lock().await;
-        // result.map(|_| ()).map_err(|e| Error(e).into())
-        // })
-    }
-
-    fn txn<'a>(&'a self, py: Python<'a>, keys: Vec<String>) -> PyResult<&'a PyAny> {
-        let client = self.0.clone();
-        todo!();
-
-        // future_into_py(py, async move {
-        //     let mut client = client.lock().await;
-        //     client.txn(txn)
-        //     result.map(|_| ()).map_err(|e| Error(e).into())
-        // })
-    }
-
-    fn txn_compare<'a>(&'a self, py: Python<'a>, keys: Vec<String>) -> PyResult<&'a PyAny> {
-        let client = self.0.clone();
-        todo!();
-
-        // future_into_py(py, async move {
-        //     let mut client = client.lock().await;
-        //     result.map(|_| ()).map_err(|e| Error(e).into())
-        // })
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            let result = client.txn(txn.0).await;
+            result
+                .map(|response| PyTxnResponse(response))
+                .map_err(|e| Error(e).into())
+        })
     }
 
     fn replace<'a>(

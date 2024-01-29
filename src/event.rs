@@ -4,20 +4,25 @@ use pyo3::prelude::*;
 use pyo3::pyclass::CompareOp;
 
 // Note: Event = namedtuple("Event", "key event value"), not asyncio.Event, threading.Event
-#[pyclass(get_all, name = "Event")]
+#[pyclass(get_all, name = "WatchEvent")]
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct PyEvent {
+pub struct PyWatchEvent {
     key: String,
     value: String,
-    event: PyEventType,
+    event: PyWatchEventType,
     prev_value: Option<String>,
 }
 
 #[pymethods]
-impl PyEvent {
+impl PyWatchEvent {
     #[new]
     #[pyo3(signature = (key, value, event, prev_value))]
-    fn new(key: String, value: String, event: PyEventType, prev_value: Option<String>) -> Self {
+    fn new(
+        key: String,
+        value: String,
+        event: PyWatchEventType,
+        prev_value: Option<String>,
+    ) -> Self {
         Self {
             key,
             value,
@@ -42,13 +47,13 @@ impl PyEvent {
     }
 }
 
-impl From<EtcdClientEvent> for PyEvent {
+impl From<EtcdClientEvent> for PyWatchEvent {
     fn from(event: EtcdClientEvent) -> Self {
         let kv = event.kv().unwrap();
         let key = String::from_utf8(kv.key().to_owned()).unwrap();
         let value = String::from_utf8(kv.value().to_owned()).unwrap();
         let prev_value = None;
-        let event = PyEventType(event.event_type());
+        let event = PyWatchEventType(event.event_type());
         Self {
             key,
             value,
@@ -58,12 +63,12 @@ impl From<EtcdClientEvent> for PyEvent {
     }
 }
 
-#[pyclass(name = "EventType")]
+#[pyclass(name = "WatchEventType")]
 #[derive(PartialEq, Eq, Clone, Debug)]
-pub struct PyEventType(EtcdClientEventType);
+pub struct PyWatchEventType(EtcdClientEventType);
 
 #[pymethods]
-impl PyEventType {
+impl PyWatchEventType {
     #[classattr]
     const PUT: Self = Self(EtcdClientEventType::Put);
 
@@ -77,7 +82,7 @@ impl PyEventType {
         }
     }
 
-    pub fn __richcmp__(&self, py: Python, rhs: &PyEventType, op: CompareOp) -> PyObject {
+    pub fn __richcmp__(&self, py: Python, rhs: &PyWatchEventType, op: CompareOp) -> PyObject {
         match op {
             CompareOp::Eq => (self.0 == rhs.0).into_py(py),
             CompareOp::Ne => (self.0 != rhs.0).into_py(py),

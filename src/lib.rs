@@ -7,6 +7,7 @@ mod event;
 mod request_generator;
 mod stream;
 mod transaction;
+mod txn_response;
 mod utils;
 mod watch;
 
@@ -14,7 +15,7 @@ use client::PyClient;
 use communicator::PyCommunicator;
 use condvar::PyCondVar;
 use error::ClientError;
-use event::{PyEvent, PyEventType};
+use event::{PyWatchEvent, PyWatchEventType};
 use pyo3::prelude::*;
 use transaction::PyTxn;
 use watch::PyWatch;
@@ -23,9 +24,11 @@ use watch::PyWatch;
 fn etcd_client(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_class::<PyClient>()?;
     module.add_class::<PyCommunicator>()?;
-    module.add_class::<PyEvent>()?;
-    module.add_class::<PyEventType>()?;
+
     module.add_class::<PyWatch>()?;
+    module.add_class::<PyWatchEvent>()?;
+    module.add_class::<PyWatchEventType>()?;
+
     module.add_class::<PyCondVar>()?;
     module.add_class::<PyTxn>()?;
 

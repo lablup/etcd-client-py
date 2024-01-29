@@ -2,17 +2,17 @@ use etcd_client::WatchStream;
 use pyo3::pyclass;
 use tokio_stream::StreamExt;
 
-use crate::{error::Error, event::PyEvent};
+use crate::{error::Error, event::PyWatchEvent};
 
-#[pyclass(name = "EventStream")]
-pub struct PyEventStream {
+#[pyclass(name = "WatchEventStream")]
+pub struct PyWatchEventStream {
     stream: WatchStream,
-    events: Vec<PyEvent>,
+    events: Vec<PyWatchEvent>,
     index: usize,
     once: bool,
 }
 
-impl PyEventStream {
+impl PyWatchEventStream {
     pub fn new(stream: WatchStream, once: bool) -> Self {
         Self {
             stream,
@@ -22,7 +22,7 @@ impl PyEventStream {
         }
     }
 
-    pub async fn next(&mut self) -> Option<Result<PyEvent, Error>> {
+    pub async fn next(&mut self) -> Option<Result<PyWatchEvent, Error>> {
         if self.once && self.index > 0 {
             return None;
         }

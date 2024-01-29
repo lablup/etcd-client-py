@@ -3,9 +3,9 @@ use pyo3::prelude::*;
 
 use crate::compare::PyCompare;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 #[pyclass(name = "TxnOp")]
-pub struct PyTxnOp(TxnOp);
+pub struct PyTxnOp(pub TxnOp);
 
 #[pymethods]
 impl PyTxnOp {
@@ -25,11 +25,16 @@ impl PyTxnOp {
         let options = DeleteOptions::new();
         Ok(PyTxnOp(TxnOp::delete(key, Some(options))))
     }
+
+    #[staticmethod]
+    fn txn(txn: PyTxn) -> PyResult<Self> {
+        Ok(PyTxnOp(TxnOp::txn(txn.0)))
+    }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Default, Clone)]
 #[pyclass(name = "Txn")]
-pub struct PyTxn(Txn);
+pub struct PyTxn(pub Txn);
 
 #[pymethods]
 impl PyTxn {
