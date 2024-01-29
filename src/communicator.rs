@@ -90,6 +90,7 @@ impl PyCommunicator {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
+
             let result = client.delete(key, None).await;
             result.map(|_| ()).map_err(|e| Error(e).into())
         })
@@ -103,6 +104,36 @@ impl PyCommunicator {
             let result = client.delete(key, Some(options)).await;
             result.map(|_| ()).map_err(|e| Error(e).into())
         })
+    }
+
+    fn delete_multi<'a>(&'a self, py: Python<'a>, keys: Vec<String>) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        todo!();
+
+        // future_into_py(py, async move {
+            // let mut client = client.lock().await;
+            // result.map(|_| ()).map_err(|e| Error(e).into())
+        // })
+    }
+
+    fn txn<'a>(&'a self, py: Python<'a>, keys: Vec<String>) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        todo!();
+
+        // future_into_py(py, async move {
+            // let mut client = client.lock().await;
+            // result.map(|_| ()).map_err(|e| Error(e).into())
+        // })
+    }
+
+    fn txn_compare<'a>(&'a self, py: Python<'a>, keys: Vec<String>) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        todo!();
+
+        // future_into_py(py, async move {
+            // let mut client = client.lock().await;
+            // result.map(|_| ()).map_err(|e| Error(e).into())
+        // })
     }
 
     fn replace<'a>(

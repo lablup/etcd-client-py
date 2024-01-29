@@ -6,6 +6,8 @@ mod event;
 mod stream;
 mod utils;
 mod watch;
+mod request_generator;
+mod transaction_action;
 
 use client::PyClient;
 use communicator::PyCommunicator;

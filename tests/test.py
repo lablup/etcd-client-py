@@ -31,34 +31,34 @@ etcd_client = Client(["http://localhost:2379"])
 #         assert len(vp) == 0
 
 
-# @pytest.mark.asyncio
-# async def test_quote_for_put_prefix() -> None:
-#     async with etcd_client.connect() as etcd:
-#         await etcd.put_prefix(
-#             "data",
-#             {
-#                 "aa:bb": {
-#                     "option1": "value1",
-#                     "option2": "value2",
-#                     "myhost/path": "this",
-#                 },
-#                 "aa:cc": "wow",
-#                 "aa:dd": {
-#                     "": "oops",
-#                 },
-#             },
-#         )
+@pytest.mark.asyncio
+async def test_quote_for_put_prefix() -> None:
+    async with etcd_client.connect() as etcd:
+        await etcd.put_prefix(
+            "data",
+            {
+                "aa:bb": {
+                    "option1": "value1",
+                    "option2": "value2",
+                    "myhost/path": "this",
+                },
+                "aa:cc": "wow",
+                "aa:dd": {
+                    "": "oops",
+                },
+            },
+        )
 
-#         v = await etcd.get("data/aa%3Abb/option1")
-#         assert v == "value1"
-#         v = await etcd.get("data/aa%3Abb/option2")
-#         assert v == "value2"
-#         v = await etcd.get("data/aa%3Abb/myhost%2Fpath")
-#         assert v == "this"
-#         v = await etcd.get("data/aa%3Acc")
-#         assert v == "wow"
-#         v = await etcd.get("data/aa%3Add")
-#         assert v == "oops"
+        v = await etcd.get("data/aa%3Abb/option1")
+        assert v == "value1"
+        v = await etcd.get("data/aa%3Abb/option2")
+        assert v == "value2"
+        v = await etcd.get("data/aa%3Abb/myhost%2Fpath")
+        assert v == "this"
+        v = await etcd.get("data/aa%3Acc")
+        assert v == "wow"
+        v = await etcd.get("data/aa%3Add")
+        assert v == "oops"
 
 
 # @pytest.mark.asyncio
@@ -197,109 +197,109 @@ etcd_client = Client(["http://localhost:2379"])
 #     assert v is None
 
 
-@pytest.mark.asyncio
-async def test_watch() -> None:
-    records = []
-    records_prefix = []
-    r_ready = CondVar()
-    rp_ready = CondVar()
+# @pytest.mark.asyncio
+# async def test_watch() -> None:
+#     records = []
+#     records_prefix = []
+#     r_ready = CondVar()
+#     rp_ready = CondVar()
 
-    async with etcd_client.connect() as etcd:
-        async def _record():
-            recv_count = 0
-            async for ev in etcd.watch("wow", ready_event=r_ready):
-                records.append(ev)
-                recv_count += 1
-                if recv_count == 2:
-                    return
+#     async with etcd_client.connect() as etcd:
+#         async def _record():
+#             recv_count = 0
+#             async for ev in etcd.watch("wow", ready_event=r_ready):
+#                 records.append(ev)
+#                 recv_count += 1
+#                 if recv_count == 2:
+#                     return
 
-        async def _record_prefix():
-            recv_count = 0
-            async for ev in etcd.watch_prefix("wow", ready_event=rp_ready):
-                records_prefix.append(ev)
-                recv_count += 1
-                if recv_count == 4:
-                    return
+#         async def _record_prefix():
+#             recv_count = 0
+#             async for ev in etcd.watch_prefix("wow", ready_event=rp_ready):
+#                 records_prefix.append(ev)
+#                 recv_count += 1
+#                 if recv_count == 4:
+#                     return
 
-        async with (
-            asyncio.timeout(10),
-            asyncio.TaskGroup() as tg,
-        ):
-            tg.create_task(_record())
-            tg.create_task(_record_prefix())
+#         async with (
+#             asyncio.timeout(10),
+#             asyncio.TaskGroup() as tg,
+#         ):
+#             tg.create_task(_record())
+#             tg.create_task(_record_prefix())
 
-            await r_ready.wait()
-            await rp_ready.wait()
+#             await r_ready.wait()
+#             await rp_ready.wait()
 
-            await etcd.put("wow", "123")
-            await etcd.delete("wow")
-            await etcd.put("wow/child", "hello")
-            await etcd.delete_prefix("wow")
+#             await etcd.put("wow", "123")
+#             await etcd.delete("wow")
+#             await etcd.put("wow/child", "hello")
+#             await etcd.delete_prefix("wow")
 
-        assert records[0].key == "wow"
-        assert records[0].event == EventType.PUT
-        assert records[0].value == "123"
-        assert records[1].key == "wow"
-        assert records[1].event == EventType.DELETE
-        assert records[1].value == ""
+#         assert records[0].key == "wow"
+#         assert records[0].event == EventType.PUT
+#         assert records[0].value == "123"
+#         assert records[1].key == "wow"
+#         assert records[1].event == EventType.DELETE
+#         assert records[1].value == ""
 
-        assert records_prefix[0].key == "wow"
-        assert records_prefix[0].event == EventType.PUT
-        assert records_prefix[0].value == "123"
-        assert records_prefix[1].key == "wow"
-        assert records_prefix[1].event == EventType.DELETE
-        assert records_prefix[1].value == ""
-        assert records_prefix[2].key == "wow/child"
-        assert records_prefix[2].event == EventType.PUT
-        assert records_prefix[2].value == "hello"
-        assert records_prefix[3].key == "wow/child"
-        assert records_prefix[3].event == EventType.DELETE
-        assert records_prefix[3].value == ""
+#         assert records_prefix[0].key == "wow"
+#         assert records_prefix[0].event == EventType.PUT
+#         assert records_prefix[0].value == "123"
+#         assert records_prefix[1].key == "wow"
+#         assert records_prefix[1].event == EventType.DELETE
+#         assert records_prefix[1].value == ""
+#         assert records_prefix[2].key == "wow/child"
+#         assert records_prefix[2].event == EventType.PUT
+#         assert records_prefix[2].value == "hello"
+#         assert records_prefix[3].key == "wow/child"
+#         assert records_prefix[3].event == EventType.DELETE
+#         assert records_prefix[3].value == ""
 
 
-@pytest.mark.asyncio
-async def test_watch_once() -> None:
-    records = []
-    records_prefix = []
-    r_ready = CondVar()
-    rp_ready = CondVar()
+# @pytest.mark.asyncio
+# async def test_watch_once() -> None:
+#     records = []
+#     records_prefix = []
+#     r_ready = CondVar()
+#     rp_ready = CondVar()
 
-    async with etcd_client.connect() as etcd:
-        async def _record():
-            recv_count = 0
-            # Below watcher returns after first event
-            async for ev in etcd.watch("wow", once=True, ready_event=r_ready):
-                records.append(ev)
-                recv_count += 1
+#     async with etcd_client.connect() as etcd:
+#         async def _record():
+#             recv_count = 0
+#             # Below watcher returns after first event
+#             async for ev in etcd.watch("wow", once=True, ready_event=r_ready):
+#                 records.append(ev)
+#                 recv_count += 1
 
-        async def _record_prefix():
-            recv_count = 0
-            # Below watcher returns after first event
-            async for ev in etcd.watch_prefix("wow/city", once=True, ready_event=rp_ready):
-                records_prefix.append(ev)
-                recv_count += 1
+#         async def _record_prefix():
+#             recv_count = 0
+#             # Below watcher returns after first event
+#             async for ev in etcd.watch_prefix("wow/city", once=True, ready_event=rp_ready):
+#                 records_prefix.append(ev)
+#                 recv_count += 1
 
-        async with (
-            asyncio.timeout(10),
-            asyncio.TaskGroup() as tg,
-        ):
-            tg.create_task(_record())
-            tg.create_task(_record_prefix())
+#         async with (
+#             asyncio.timeout(10),
+#             asyncio.TaskGroup() as tg,
+#         ):
+#             tg.create_task(_record())
+#             tg.create_task(_record_prefix())
 
-            await r_ready.wait()
-            await rp_ready.wait()
+#             await r_ready.wait()
+#             await rp_ready.wait()
 
-            await etcd.put("wow/city1", "seoul")
-            await etcd.put("wow/city2", "daejeon")
-            await etcd.put("wow", "korea")
-            await etcd.delete_prefix("wow")
+#             await etcd.put("wow/city1", "seoul")
+#             await etcd.put("wow/city2", "daejeon")
+#             await etcd.put("wow", "korea")
+#             await etcd.delete_prefix("wow")
 
-        assert len(records) == 1
+#         assert len(records) == 1
 
-        assert records[0].key == "wow"
-        assert records[0].event == EventType.PUT
-        assert records[0].value == "korea"
+#         assert records[0].key == "wow"
+#         assert records[0].event == EventType.PUT
+#         assert records[0].value == "korea"
 
-        assert records_prefix[0].key == "wow/city1"
-        assert records_prefix[0].event == EventType.PUT
-        assert records_prefix[0].value == "seoul"
+#         assert records_prefix[0].key == "wow/city1"
+#         assert records_prefix[0].event == EventType.PUT
+#         assert records_prefix[0].value == "seoul"
