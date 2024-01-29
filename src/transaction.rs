@@ -38,6 +38,11 @@ pub struct PyTxn(pub Txn);
 
 #[pymethods]
 impl PyTxn {
+    #[new]
+    fn new() -> Self {
+        PyTxn(Txn::new())
+    }
+
     fn when(&self, compares: Vec<PyCompare>) -> PyResult<Self> {
         let compares = compares.into_iter().map(|c| c.0).collect::<Vec<_>>();
         Ok(PyTxn(self.0.clone().when(compares)))
