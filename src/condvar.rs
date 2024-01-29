@@ -31,7 +31,7 @@ impl PyCondVar {
         })
     }
 
-    pub fn notify_all<'a>(&'a self, py: Python<'a>) -> PyResult<&'a PyAny> {
+    pub fn notify_waiters<'a>(&'a self, py: Python<'a>) -> PyResult<&'a PyAny> {
         let inner = self.inner.clone();
         let condition = self.condition.clone();
         future_into_py(py, async move {
@@ -43,7 +43,7 @@ impl PyCondVar {
 }
 
 impl PyCondVar {
-    pub async fn _notify_all(&self) {
+    pub async fn _notify_waiters(&self) {
         let inner = self.inner.clone();
         let condition = self.condition.clone();
         *condition.lock().await = true;

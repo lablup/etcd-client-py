@@ -3,6 +3,7 @@ use etcd_client::WatchOptions;
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
 use pyo3_asyncio::tokio::future_into_py;
+use tokio::sync::Notify;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -16,6 +17,7 @@ pub struct PyWatch {
     client: Arc<Mutex<EtcdClient>>,
     key: String,
     options: Option<WatchOptions>,
+    event_stream_init_notifier: Arc<Notify>,
     event_stream: Arc<Mutex<Option<PyEventStream>>>,
     ready_event: Option<PyCondVar>,
     cleanup_event: Option<PyCondVar>,
@@ -33,6 +35,7 @@ impl PyWatch {
             client,
             key,
             options,
+            event_stream_init_notifier: Arc::new(Notify::new()),
             event_stream: Arc::new(Mutex::new(None)),
             ready_event,
             cleanup_event,
@@ -46,14 +49,17 @@ impl PyWatch {
             return Ok(());
         }
 
+        let event_stream_init_notifier = self.event_stream_init_notifier.clone();
+
         let mut client = self.client.lock().await;
 
         match client.watch(self.key.clone(), self.options.clone()).await {
             Ok((_, stream)) => {
                 *event_stream = Some(PyEventStream::new(stream));
+                event_stream_init_notifier.notify_waiters();
 
                 if let Some(ready_event) = &self.ready_event {
-                    ready_event._notify_all().await;
+                    ready_event._notify_waiters().await;
                 }
                 Ok(())
             }
@@ -70,16 +76,16 @@ impl PyWatch {
 
     fn __anext__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Option<PyObject>> {
         let watch = Arc::new(Mutex::new(self.clone()));
+        let event_stream_init_notifier = self.event_stream_init_notifier.clone();
+
         let result = future_into_py(py, async move {
             let mut watch = watch.lock().await;
             watch.init().await?;
 
             let mut event_stream = watch.event_stream.lock().await;
 
-            while event_stream.is_none() {
-                // Wait for a short duration before checking again
-                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                event_stream = watch.event_stream.lock().await;
+            if event_stream.is_none() {
+                event_stream_init_notifier.notified().await;
             }
 
             let event_stream = event_stream.as_mut().unwrap();
