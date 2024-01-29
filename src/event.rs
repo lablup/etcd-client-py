@@ -5,7 +5,7 @@ use pyo3::pyclass::CompareOp;
 
 // Note: Event = namedtuple("Event", "key event value"), not asyncio.Event, threading.Event
 #[pyclass(get_all, name = "Event")]
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub struct PyEvent {
     key: String,
     value: String,

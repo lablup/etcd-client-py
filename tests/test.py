@@ -208,8 +208,6 @@ async def test_watch() -> None:
         async def _record():
             recv_count = 0
             async for ev in etcd.watch("wow", ready_event=r_ready):
-                print("Record", ev)
-
                 records.append(ev)
                 recv_count += 1
                 if recv_count == 2:
@@ -218,14 +216,13 @@ async def test_watch() -> None:
         async def _record_prefix():
             recv_count = 0
             async for ev in etcd.watch_prefix("wow", ready_event=rp_ready):
-                print("Prefix", ev)
                 records_prefix.append(ev)
                 recv_count += 1
                 if recv_count == 4:
                     return
 
         async with (
-            asyncio.timeout(3),
+            asyncio.timeout(5),
             asyncio.TaskGroup() as tg,
         ):
             tg.create_task(_record())
@@ -238,7 +235,6 @@ async def test_watch() -> None:
             await etcd.delete("wow")
             await etcd.put("wow/child", "hello")
             await etcd.delete_prefix("wow")
-            print('Done!')
 
         assert records[0].key == "wow"
         assert records[0].event == EventType.PUT

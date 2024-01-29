@@ -16,7 +16,7 @@ pub struct PyWatch {
     client: Arc<Mutex<EtcdClient>>,
     key: String,
     options: Option<WatchOptions>,
-    event_stream: Option<Arc<Mutex<PyEventStream>>>,
+    event_stream: Arc<Mutex<Option<PyEventStream>>>,
     ready_event: Option<PyCondVar>,
     cleanup_event: Option<PyCondVar>,
 }
@@ -33,7 +33,7 @@ impl PyWatch {
             client,
             key,
             options,
-            event_stream: None,
+            event_stream: Arc::new(Mutex::new(None)),
             ready_event,
             cleanup_event,
         }
@@ -41,7 +41,8 @@ impl PyWatch {
 
     pub async fn init(&mut self) -> Result<(), Error> {
         // Already initialized
-        if self.event_stream.is_some() {
+        let mut event_stream = self.event_stream.lock().await;
+        if event_stream.is_some() {
             return Ok(());
         }
 
@@ -49,10 +50,11 @@ impl PyWatch {
 
         match client.watch(self.key.clone(), self.options.clone()).await {
             Ok((_, stream)) => {
-                self.event_stream = Some(Arc::new(Mutex::new(PyEventStream::new(stream))));
+                *event_stream = Some(PyEventStream::new(stream));
 
-                let ready_event = self.ready_event.clone();
-                ready_event.as_ref().unwrap()._notify_all().await;
+                if let Some(ready_event) = &self.ready_event {
+                    ready_event._notify_all().await;
+                }
                 Ok(())
             }
             Err(error) => return Err(Error(error)),
@@ -72,12 +74,19 @@ impl PyWatch {
             let mut watch = watch.lock().await;
             watch.init().await?;
 
-            let event_stream_lk = watch.event_stream.as_ref().unwrap().clone();
-            let mut event_stream = event_stream_lk.lock().await;
+            let mut event_stream = watch.event_stream.lock().await;
+
+            while event_stream.is_none() {
+                // Wait for a short duration before checking again
+                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                event_stream = watch.event_stream.lock().await;
+            }
+
+            let event_stream = event_stream.as_mut().unwrap();
 
             Ok(match event_stream.next().await {
                 Some(result) => result,
-                None => return Err(PyStopAsyncIteration::new_err(())),
+                None => return Err(PyStopAsyncIteration::new_err(()))
             }?)
         });
 

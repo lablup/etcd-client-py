@@ -27,25 +27,25 @@ impl PyEventStream {
             return Some(Ok(event));
         }
 
-        let result = match self.stream.next().await {
-            Some(result) => result,
-            None => return None,
-        };
+        match self.stream.next().await {
+            Some(Ok(response)) => {
+                let events = response.events();
+                for event in events {
+                    self.events.push(event.clone().into());
+                }
 
-        let response = match result {
-            Ok(response) => response,
-            Err(error) => return Some(Err(Error(error))),
-        };
-
-        let mut events = Vec::new();
-        for event in response.events() {
-            events.push(event.clone().into());
+                if self.events.len() > 0 {
+                    let event = self.events[self.index].clone();
+                    self.index += 1;
+                    Some(Ok(event))
+                } else {
+                    None
+                }
+            }
+            Some(Err(error)) => {
+                Some(Err(Error(error)))
+            }
+            None => None
         }
-
-        self.events = events;
-        let event = self.events[0].clone();
-
-        self.index = 1;
-        Some(Ok(event))
     }
 }
