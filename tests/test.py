@@ -179,26 +179,26 @@ async def test_scope_dict(etcd: AsyncEtcd) -> None:
     assert len(vp) == 0
 
 
-# @pytest.mark.asyncio
-# async def test_multi(etcd: AsyncEtcd) -> None:
-#     etcd = await etcd
+@pytest.mark.asyncio
+async def test_multi(etcd: AsyncEtcd) -> None:
+    etcd = await etcd
 
-#     v = await etcd.get("foo")
-#     assert v is None
-#     v = await etcd.get("bar")
-#     assert v is None
+    v = await etcd.get("foo")
+    assert v is None
+    v = await etcd.get("bar")
+    assert v is None
 
-#     await etcd.put_dict({"foo": "x", "bar": "y"})
-#     v = await etcd.get("foo")
-#     assert v == "x"
-#     v = await etcd.get("bar")
-#     assert v == "y"
+    await etcd.put_dict({"foo": "x", "bar": "y"})
+    v = await etcd.get("foo")
+    assert v == "x"
+    v = await etcd.get("bar")
+    assert v == "y"
 
-#     await etcd.delete_multi(["foo", "bar"])
-#     v = await etcd.get("foo")
-#     assert v is None
-#     v = await etcd.get("bar")
-#     assert v is None
+    await etcd.delete_multi(["foo", "bar"])
+    v = await etcd.get("foo")
+    assert v is None
+    v = await etcd.get("bar")
+    assert v is None
 
 
 @pytest.mark.asyncio

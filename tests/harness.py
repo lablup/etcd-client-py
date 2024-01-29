@@ -466,7 +466,7 @@ class AsyncEtcd:
             # TODO: Test below transaction codes
             actions = []
             for k in keys:
-                actions.append(TxnOp.delete(k))
+                actions.append(TxnOp.delete(self._mangle_key(f"{_slash(scope_prefix)}{k}")))
             txn = EtcdTransactionAction()
             communicator.txn(txn.and_then(actions).or_else([]))
 
