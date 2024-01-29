@@ -111,8 +111,8 @@ impl PyCommunicator {
         todo!();
 
         // future_into_py(py, async move {
-            // let mut client = client.lock().await;
-            // result.map(|_| ()).map_err(|e| Error(e).into())
+        // let mut client = client.lock().await;
+        // result.map(|_| ()).map_err(|e| Error(e).into())
         // })
     }
 
@@ -121,8 +121,9 @@ impl PyCommunicator {
         todo!();
 
         // future_into_py(py, async move {
-            // let mut client = client.lock().await;
-            // result.map(|_| ()).map_err(|e| Error(e).into())
+        //     let mut client = client.lock().await;
+        //     client.txn(txn)
+        //     result.map(|_| ()).map_err(|e| Error(e).into())
         // })
     }
 
@@ -131,8 +132,8 @@ impl PyCommunicator {
         todo!();
 
         // future_into_py(py, async move {
-            // let mut client = client.lock().await;
-            // result.map(|_| ()).map_err(|e| Error(e).into())
+        //     let mut client = client.lock().await;
+        //     result.map(|_| ()).map_err(|e| Error(e).into())
         // })
     }
 

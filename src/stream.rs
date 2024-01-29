@@ -9,7 +9,7 @@ pub struct PyEventStream {
     stream: WatchStream,
     events: Vec<PyEvent>,
     index: usize,
-    once: bool
+    once: bool,
 }
 
 impl PyEventStream {

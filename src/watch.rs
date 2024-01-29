@@ -109,7 +109,7 @@ impl PyWatch {
                         }
 
                         result
-                    },
+                    }
                     None => return Err(PyStopAsyncIteration::new_err(())),
                 }?;
 
