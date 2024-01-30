@@ -1,8 +1,8 @@
 import asyncio
 
 import pytest
-from etcd_client import Client, CondVar, WatchEventType
-from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
+from etcd_client import CondVar, WatchEventType
+from tests.harness import AsyncEtcd, ConfigScopes
 
 
 @pytest.mark.asyncio

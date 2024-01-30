@@ -14,7 +14,9 @@ use communicator::PyCommunicator;
 use compare::{PyCompare, PyCompareOp};
 use condvar::PyCondVar;
 use error::{
-    ClientError, ElectError, EndpointError, GRpcStatusError, InvalidArgsError, InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError, PyGRpcStatusCode, TransportError, Utf8Error, WatchError
+    ClientError, ElectError, EndpointError, GRpcStatusError, InvalidArgsError,
+    InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError, PyGRpcStatusCode,
+    TransportError, Utf8Error, WatchError,
 };
 use pyo3::prelude::*;
 use txn::{PyTxn, PyTxnOp};

@@ -31,12 +31,15 @@ from typing import (
     Union,
     cast,
 )
-from urllib.parse import quote as _quote
-from urllib.parse import unquote
+from urllib.parse import quote as _quote, unquote
 
 import trafaret as t
 
 from etcd_client import (
+    Client as EtcdClient,
+    Txn as EtcdTransactionAction,
+    TxnOp,
+    Compare,
     Communicator as EtcdCommunicator,
     CompareOp,
     CondVar,
@@ -44,10 +47,7 @@ from etcd_client import (
     GRpcStatusCode,
     GRpcStatusError,
     WatchEvent,
-    ClientError,
 )
-from etcd_client import Client as EtcdClient, Txn as EtcdTransactionAction, TxnOp
-from etcd_client import Compare as CompareKey
 
 
 class QueueSentinel(enum.Enum):
@@ -436,17 +436,14 @@ class AsyncEtcd:
         mangled_key = self._mangle_key(f"{_slash(scope_prefix)}{key}")
 
         async with self.etcd.connect() as communicator:
-            put_action = TxnOp.put(mangled_key, new_val)
-
-            txn = EtcdTransactionAction()
-
             result = await communicator.txn(
-                txn.when(
+                EtcdTransactionAction()
+                .when(
                     [
-                        CompareKey.value(mangled_key, CompareOp.EQUAL, initial_val),
+                        Compare.value(mangled_key, CompareOp.EQUAL, initial_val),
                     ]
                 )
-                .and_then([put_action])
+                .and_then([TxnOp.put(mangled_key, new_val)])
                 .or_else([])
             )
 
