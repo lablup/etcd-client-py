@@ -9,8 +9,8 @@ use tokio::sync::Mutex;
 use tokio::sync::Notify;
 
 use crate::condvar::PyCondVar;
-use crate::error::Error;
-use crate::stream::PyWatchEventStream;
+use crate::error::PyClientError;
+use crate::watch_event_stream::PyWatchEventStream;
 
 #[pyclass(name = "Watch")]
 #[derive(Clone)]
@@ -23,6 +23,7 @@ pub struct PyWatch {
     event_stream_init_notifier: Arc<Notify>,
     event_stream: Arc<Mutex<Option<PyWatchEventStream>>>,
     ready_event: Option<PyCondVar>,
+    #[allow(dead_code)]
     cleanup_event: Option<PyCondVar>,
 }
 
@@ -48,7 +49,7 @@ impl PyWatch {
         }
     }
 
-    pub async fn init(&mut self) -> Result<(), Error> {
+    pub async fn init(&mut self) -> Result<(), PyClientError> {
         // Already initialized
         let mut event_stream = self.event_stream.lock().await;
         if event_stream.is_some() {
@@ -71,7 +72,7 @@ impl PyWatch {
                 }
                 Ok(())
             }
-            Err(error) => Err(Error(error)),
+            Err(error) => Err(PyClientError(error)),
         }
     }
 }

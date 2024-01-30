@@ -8,8 +8,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::condvar::PyCondVar;
-use crate::error::Error;
-use crate::transaction::PyTxn;
+use crate::error::PyClientError;
+use crate::txn::PyTxn;
 use crate::txn_response::PyTxnResponse;
 use crate::watch::PyWatch;
 
@@ -32,7 +32,7 @@ impl PyCommunicator {
                         None
                     }
                 })
-                .map_err(|e| Error(e).into())
+                .map_err(|e| PyClientError(e).into())
         })
     }
 
@@ -53,7 +53,7 @@ impl PyCommunicator {
                     }
                     result
                 })
-                .map_err(|e| Error(e).into())
+                .map_err(|e| PyClientError(e).into())
         })
     }
 
@@ -62,7 +62,7 @@ impl PyCommunicator {
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.put(key, value, None).await;
-            result.map(|_| ()).map_err(|e| Error(e).into())
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
         })
     }
 
@@ -77,7 +77,7 @@ impl PyCommunicator {
             let mut client = client.lock().await;
             let options = PutOptions::new().with_prev_key();
             let result = client.put(prefix, value, Some(options)).await;
-            result.map(|_| ()).map_err(|e| Error(e).into())
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
         })
     }
 
@@ -87,7 +87,7 @@ impl PyCommunicator {
             let mut client = client.lock().await;
 
             let result = client.delete(key, None).await;
-            result.map(|_| ()).map_err(|e| Error(e).into())
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
         })
     }
 
@@ -97,7 +97,7 @@ impl PyCommunicator {
             let mut client = client.lock().await;
             let options = DeleteOptions::new().with_prefix();
             let result = client.delete(key, Some(options)).await;
-            result.map(|_| ()).map_err(|e| Error(e).into())
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
         })
     }
 
@@ -107,7 +107,9 @@ impl PyCommunicator {
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.txn(txn.0).await;
-            result.map(PyTxnResponse).map_err(|e| Error(e).into())
+            result
+                .map(PyTxnResponse)
+                .map_err(|e| PyClientError(e).into())
         })
     }
 
@@ -127,7 +129,7 @@ impl PyCommunicator {
                         if *key_value.value_str().unwrap() == initial_val {
                             match client.put(key, new_val, None).await {
                                 Ok(_) => Ok(true), // replace successful
-                                Err(e) => Err(Error(e)),
+                                Err(e) => Err(PyClientError(e)),
                             }
                         } else {
                             Ok(false) // initial_val not equal to current value
@@ -136,7 +138,7 @@ impl PyCommunicator {
                         Ok(false) // Key does not exist
                     }
                 }
-                Err(e) => Err(Error(e)),
+                Err(e) => Err(PyClientError(e)),
             }
             .map_err(|e| PyErr::new::<PyException, _>(format!("{}", e.0)))
         })
@@ -158,7 +160,7 @@ impl PyCommunicator {
                     }
                     result
                 })
-                .map_err(|e| Error(e).into())
+                .map_err(|e| PyClientError(e).into())
         })
     }
 
