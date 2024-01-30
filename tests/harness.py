@@ -516,7 +516,7 @@ class AsyncEtcd:
                         return
         finally:
             if cleanup_event:
-                cleanup_event.notify_all()
+                cleanup_event.notify_waiters()
 
     async def watch(
         self,
