@@ -1,15 +1,17 @@
 [package]
 name = "etcd-client-py"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
+authors = ["Lablup Inc."]
+readme = "./README.md"
 
 [lib]
 name = "etcd_client"
 crate-type = ["cdylib"]
 
 [dependencies]
-etcd-client = "0.10"
-pyo3 = { version = "0.18", features = ["extension-module"] }
-pyo3-asyncio = { version = "0.18", features = ["tokio-runtime"] }
-tokio = { version = "1", features = ["sync"] }
-tokio-stream = "0.1"
+etcd-client = "0.12.4"
+pyo3 = { version = "0.20.2", features = ["extension-module", "multiple-pymethods"] }
+pyo3-asyncio = { version = "0.20.0", features = ["tokio-runtime"] }
+tokio = { version = "1.32.0", features = ["sync"] }
+tokio-stream = "0.1.14"

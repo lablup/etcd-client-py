@@ -5,3 +5,4 @@
 .*.swo
 /dist/
 /target/
+__pycache__/
