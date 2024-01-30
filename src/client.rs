@@ -74,8 +74,10 @@ impl PyClient {
         Self { endpoints, options }
     }
 
-    fn connect(&self) -> Self {
-        self.clone()
+    fn connect(&self, options: Option<PyConnectOptions>) -> Self {
+        let mut result = self.clone();
+        result.options = options.unwrap_or(self.options.clone());
+        result
     }
 
     fn __aenter__<'a>(&'a self, py: Python<'a>) -> PyResult<&'a PyAny> {

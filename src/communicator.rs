@@ -164,6 +164,71 @@ impl PyCommunicator {
         })
     }
 
+    fn lock<'a>(
+        &'a self,
+        py: Python<'a>,
+        name: String,
+    ) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            let result = client.lock(name, None).await;
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
+        })
+    }
+
+    fn unlock<'a>(
+        &'a self,
+        py: Python<'a>,
+        key: String,
+    ) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            let result = client.unlock(key).await;
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
+        })
+    }
+
+    fn lease_grant<'a>(
+        &'a self,
+        py: Python<'a>,
+        ttl: i64,
+    ) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            let result = client.lease_grant(ttl, None).await;
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
+        })
+    }
+
+    fn lease_revoke<'a>(
+        &'a self,
+        py: Python<'a>,
+        id: i64,
+    ) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            let result = client.lease_revoke(id).await;
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
+        })
+    }
+
+    fn lease_time_to_live<'a>(
+        &'a self,
+        py: Python<'a>,
+        id: i64,
+    ) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            let result = client.lease_time_to_live(id, None).await;
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
+        })
+    }
+
     fn watch(
         &self,
         key: String,

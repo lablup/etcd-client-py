@@ -61,7 +61,7 @@ class Client:
         self, endpoints: list[str], options: Optional["ConnectOptions"] = None
     ) -> None:
         """ """
-    def connect(self) -> "Client":
+    def connect(self, options: Optional["ConnectOptions"] = None) -> "Client":
         """ """
     async def __aenter__(self) -> "Communicator":
         """ """
@@ -111,6 +111,16 @@ class Communicator:
     async def keys_prefix(self, key: str) -> list[str]:
         """ """
     async def replace(self, key: str, initial_value: str, new_value: str) -> bool:
+        """ """
+    async def lock(self, name: str) -> None:
+        """ """
+    async def unlock(self, key: str) -> None:
+        """ """
+    async def lease_grant(self, ttl: int) -> None:
+        """ """
+    async def lease_revoke(self, id: int) -> None:
+        """ """
+    async def lease_time_to_live(self, id: int) -> None:
         """ """
     def watch(
         self,
