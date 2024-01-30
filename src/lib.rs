@@ -3,23 +3,22 @@ mod communicator;
 mod compare;
 mod condvar;
 mod error;
-mod event;
-mod request_generator;
 mod stream;
 mod transaction;
 mod txn_response;
 mod watch;
+mod watch_event;
 
 use client::PyClient;
 use communicator::PyCommunicator;
 use compare::{PyCompare, PyCompareOp};
 use condvar::PyCondVar;
 use error::ClientError;
-use event::{PyWatchEvent, PyWatchEventType};
 use pyo3::prelude::*;
 use transaction::{PyTxn, PyTxnOp};
 use txn_response::PyTxnResponse;
 use watch::PyWatch;
+use watch_event::{PyWatchEvent, PyWatchEventType};
 
 #[pymodule]
 fn etcd_client(py: Python, module: &PyModule) -> PyResult<()> {

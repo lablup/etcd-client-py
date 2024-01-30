@@ -2,7 +2,6 @@ use etcd_client::{Client as EtcdClient, PutOptions};
 use etcd_client::{DeleteOptions, GetOptions, WatchOptions};
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
 use pyo3_asyncio::tokio::future_into_py;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -12,7 +11,7 @@ use crate::condvar::PyCondVar;
 use crate::error::Error;
 use crate::transaction::PyTxn;
 use crate::txn_response::PyTxnResponse;
-use crate::PyWatch;
+use crate::watch::PyWatch;
 
 #[pyclass(name = "Communicator")]
 pub struct PyCommunicator(pub Arc<Mutex<EtcdClient>>);
@@ -108,9 +107,7 @@ impl PyCommunicator {
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.txn(txn.0).await;
-            result
-                .map(|response| PyTxnResponse(response))
-                .map_err(|e| Error(e).into())
+            result.map(PyTxnResponse).map_err(|e| Error(e).into())
         })
     }
 
@@ -127,7 +124,7 @@ impl PyCommunicator {
             match client.get(key.clone(), None).await {
                 Ok(response) => {
                     if let Some(key_value) = response.kvs().get(0) {
-                        if key_value.value_str().unwrap().to_owned() == initial_val {
+                        if *key_value.value_str().unwrap() == initial_val {
                             match client.put(key, new_val, None).await {
                                 Ok(_) => Ok(true), // replace successful
                                 Err(e) => Err(Error(e)),

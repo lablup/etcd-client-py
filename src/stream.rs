@@ -2,7 +2,7 @@ use etcd_client::WatchStream;
 use pyo3::pyclass;
 use tokio_stream::StreamExt;
 
-use crate::{error::Error, event::PyWatchEvent};
+use crate::{error::Error, watch_event::PyWatchEvent};
 
 #[pyclass(name = "WatchEventStream")]
 pub struct PyWatchEventStream {
@@ -40,7 +40,7 @@ impl PyWatchEventStream {
                     self.events.push(event.clone().into());
                 }
 
-                if self.events.len() > 0 {
+                if !self.events.is_empty() {
                     let event = self.events[self.index].clone();
                     self.index += 1;
                     Some(Ok(event))

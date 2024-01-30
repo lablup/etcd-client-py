@@ -78,7 +78,7 @@ impl PyWatch {
 
 #[pymethods]
 impl PyWatch {
-    fn __aiter__<'a>(&'a self) -> Self {
+    fn __aiter__(&self) -> Self {
         self.clone()
     }
 
