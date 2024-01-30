@@ -210,7 +210,7 @@ dependencies = [
 
 [[package]]
 name = "etcd-client-py"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "etcd-client",
  "pyo3",
