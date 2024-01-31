@@ -133,7 +133,7 @@ class ConnectOptions:
           This would be useful if you meet some error like `too many pings`.
     """
     def with_connect_timeout(self, connect_timeout: int) -> "ConnectOptions": ...
-    """ """
+    """Apply a timeout to connecting to the endpoint."""
     def with_timeout(self, timeout: int) -> "ConnectOptions": ...
     """Apply a timeout to each request."""
     def with_tcp_keepalive(self, tcp_keepalive: int) -> "ConnectOptions": ...
@@ -141,33 +141,69 @@ class ConnectOptions:
 
 class Communicator:
     async def get(self, key: str) -> str:
-        """ """
+        """
+        Gets the key from the key-value store.
+        """
     async def get_prefix(self, key: str) -> dict[str, Any]:
-        """ """
+        """
+        Gets the key from the key-value store.
+        """
     async def put(self, key: str, value: str) -> None:
-        """ """
+        """
+        Put the given key into the key-value store.
+        A put request increments the revision of the key-value store
+        and generates one event in the event history.
+        """
     async def put_prefix(self, key: str, value: dict[str, Any]) -> None:
-        """ """
+        """
+        Put the given key into the key-value store.
+        A put request increments the revision of the key-value store
+        and generates one event in the event history.
+        """
     async def txn(self, txn: "Txn") -> "TxnResponse":
-        """ """
+        """
+        Processes multiple operations in a single transaction.
+        A txn request increments the revision of the key-value store
+        and generates events with the same revision for every completed operation.
+        It is not allowed to modify the same key several times within one txn.
+        """
     async def delete(self, key: str) -> None:
-        """ """
+        """
+        Deletes the given key from the key-value store.
+        """
     async def delete_prefix(self, key: str) -> None:
-        """ """
+        """
+        Deletes the given key from the key-value store.
+        """
     async def keys_prefix(self, key: str) -> list[str]:
         """ """
     async def replace(self, key: str, initial_value: str, new_value: str) -> bool:
         """ """
     async def lock(self, name: str) -> None:
-        """ """
+        """
+        Lock acquires a distributed shared lock on a given named lock.
+        On success, it will return a unique key that exists so long as the
+        lock is held by the caller. This key can be used in conjunction with
+        transactions to safely ensure updates to etcd only occur while holding
+        lock ownership. The lock is held until Unlock is called on the key or the
+        lease associate with the owner expires.
+        """
     async def unlock(self, key: str) -> None:
-        """ """
+        """
+        Unlock takes a key returned by Lock and releases the hold on lock. The
+        next Lock caller waiting for the lock will then be woken up and given
+        ownership of the lock.
+        """
     async def lease_grant(self, ttl: int) -> None:
-        """ """
+        """
+        Creates a lease which expires if the server does not receive a keepAlive
+        within a given time to live period. All keys attached to the lease will be expired and
+        deleted if the lease expires. Each expired key generates a delete event in the event history.
+        """
     async def lease_revoke(self, id: int) -> None:
-        """ """
+        """Revokes a lease. All keys attached to the lease will expire and be deleted."""
     async def lease_time_to_live(self, id: int) -> None:
-        """ """
+        """Retrieves lease information."""
     def watch(
         self,
         key: str,
@@ -175,7 +211,12 @@ class Communicator:
         once: Optional[bool] = False,
         ready_event: Optional["CondVar"] = None,
     ) -> "Watch":
-        """ """
+        """
+        Watches for events happening or that have happened. Both input and output
+        are streams; the input stream is for creating and canceling watcher and the output
+        stream sends events. The entire event history can be watched starting from the
+        last compaction revision.
+        """
     def watch_prefix(
         self,
         key: str,
@@ -183,7 +224,12 @@ class Communicator:
         once: Optional[bool] = False,
         ready_event: Optional["CondVar"] = None,
     ) -> "Watch":
-        """ """
+        """
+        Watches for events happening or that have happened. Both input and output
+        are streams; the input stream is for creating and canceling watcher and the output
+        stream sends events. The entire event history can be watched starting from the
+        last compaction revision.
+        """
 
 class Watch:
     """ """
