@@ -112,7 +112,9 @@ class Client:
     def connect(self, options: Optional["ConnectOptions"] = None) -> "Client":
         """ """
     async def __aenter__(self) -> "Communicator":
-        """ """
+        """
+        Connect to `etcd` servers from given `endpoints`.
+        """
 
 class ConnectOptions:
     def __init__(self) -> None: ...
