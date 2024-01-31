@@ -24,24 +24,69 @@ class CompareOp:
 class Compare:
     @classmethod
     def version(key: str, cmp: "CompareOp", version: int) -> "Compare": ...
+    """
+    Compares the version of the given key.
+    """
     @classmethod
     def create_revision(key: str, cmp: "CompareOp", revision: int) -> "Compare": ...
+    """
+    Compares the creation revision of the given key.
+    """
     @classmethod
     def mod_revision(key: str, cmp: "CompareOp", revision: int) -> "Compare": ...
+    """
+    Compares the last modified revision of the given key.
+    """
     @classmethod
     def value(key: str, cmp: "CompareOp", value: str) -> "Compare": ...
+    """
+    Compares the value of the given key.
+    """
     @classmethod
     def lease(key: str, cmp: "CompareOp", lease: int) -> "Compare": ...
+    """
+    Compares the lease id of the given key.
+    """
     def with_range(self, end: list[int]) -> "Compare": ...
+    """
+    Sets the comparison to scan the range [key, end).
+    """
     def with_prefix(self) -> "Compare": ...
+    """
+    Sets the comparison to scan all keys prefixed by the key.
+    """
 
 class Txn:
+    """
+    Transaction of multiple operations.
+    """
+
     def __init__(self) -> None: ...
+    """
+    Creates a new transaction.
+    """
     def when(self, compares: list["Compare"]) -> "Txn": ...
+    """
+    Takes a list of comparison. If all comparisons passed in succeed,
+    the operations passed into `and_then()` will be executed. Or the operations
+    passed into `or_else()` will be executed.
+    """
     def and_then(self, operations: list["TxnOp"]) -> "Txn": ...
+    """
+    Takes a list of operations. The operations list will be executed, if the
+    comparisons passed in `when()` succeed.
+    """
     def or_else(self, operations: list["TxnOp"]) -> "Txn": ...
+    """
+    Takes a list of operations. The operations list will be executed, if the
+    comparisons passed in `when()` fail. 
+    """
 
 class TxnOp:
+    """
+    Transaction operation.
+    """
+
     @classmethod
     def get(key: str) -> "TxnOp": ...
     @classmethod
@@ -53,6 +98,9 @@ class TxnOp:
 
 class TxnResponse:
     def succeeded(self) -> bool: ...
+    """
+    Returns `true` if the compare evaluated to true or `false` otherwise.
+    """
 
 class Client:
     """ """
@@ -68,30 +116,28 @@ class Client:
 
 class ConnectOptions:
     def __init__(self) -> None: ...
-    def with_username(self, user: str, password: str) -> "ConnectOptions": ...
+    def with_user(self, user: str, password: str) -> "ConnectOptions": ...
+    """
+    name is the identifier for the distributed shared lock to be acquired.
+    """
     def with_keep_alive(self, interval: int, timeout: int) -> "ConnectOptions": ...
+    """
+    Enable HTTP2 keep-alive with `interval` and `timeout`.
+    """
     def with_keep_alive_while_idle(self, enabled: bool) -> "ConnectOptions": ...
+    """
+    Whether send keep alive pings even there are no active requests.
+    If disabled, keep-alive pings are only sent while there are opened request/response streams.
+    If enabled, pings are also sent when no streams are active.
+    NOTE: Some implementations of gRPC server may send GOAWAY if there are too many pings.
+          This would be useful if you meet some error like `too many pings`.
+    """
     def with_connect_timeout(self, connect_timeout: int) -> "ConnectOptions": ...
+    """ """
     def with_timeout(self, timeout: int) -> "ConnectOptions": ...
+    """Apply a timeout to each request."""
     def with_tcp_keepalive(self, tcp_keepalive: int) -> "ConnectOptions": ...
-
-class Watch:
-    """ """
-
-    async def __aiter__(self) -> AsyncIterator["Watch"]:
-        """ """
-    async def __anext__(self) -> "WatchEvent":
-        """ """
-
-class CondVar:
-    """ """
-
-    def __init__(self) -> None:
-        """ """
-    async def wait(self) -> None:
-        """ """
-    async def notify_waiters(self) -> None:
-        """ """
+    """Enable TCP keepalive."""
 
 class Communicator:
     async def get(self, key: str) -> str:
@@ -139,6 +185,14 @@ class Communicator:
     ) -> "Watch":
         """ """
 
+class Watch:
+    """ """
+
+    async def __aiter__(self) -> AsyncIterator["Watch"]:
+        """ """
+    async def __anext__(self) -> "WatchEvent":
+        """ """
+
 class WatchEvent:
     """ """
 
@@ -163,6 +217,16 @@ class WatchEventType:
     DELETE: Final[Any]
     """
     """
+
+class CondVar:
+    """ """
+
+    def __init__(self) -> None:
+        """ """
+    async def wait(self) -> None:
+        """ """
+    async def notify_waiters(self) -> None:
+        """ """
 
 class ClientError(Exception):
     """ """
