@@ -1,6 +1,6 @@
 [package]
-name = "etcd-client-py"
-version = "0.2.0-beta.1"
+name = "etcd-client-py-test"
+version = "0.2.17-beta.1"
 edition = "2021"
 authors = ["Lablup Inc."]
 readme = "./README.md"
@@ -10,7 +10,7 @@ name = "etcd_client"
 crate-type = ["cdylib"]
 
 [dependencies]
-etcd-client = "0.12.4"
+etcd-client = { path = "/home/jopemachine/etcd-client"}
 pyo3 = { version = "0.20.2", features = ["extension-module", "multiple-pymethods"] }
 pyo3-asyncio = { version = "0.20.0", features = ["tokio-runtime"] }
 tokio = { version = "1.32.0", features = ["sync"] }

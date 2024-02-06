@@ -30,6 +30,10 @@ impl PyTxnOp {
     fn txn(txn: PyTxn) -> PyResult<Self> {
         Ok(PyTxnOp(TxnOp::txn(txn.0)))
     }
+
+    pub fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -56,5 +60,9 @@ impl PyTxn {
     fn or_else(&self, operations: Vec<PyTxnOp>) -> PyResult<Self> {
         let operations = operations.into_iter().map(|c| c.0).collect::<Vec<_>>();
         Ok(PyTxn(self.0.clone().or_else(operations)))
+    }
+
+    pub fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
     }
 }

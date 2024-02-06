@@ -164,11 +164,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lock<'a>(
-        &'a self,
-        py: Python<'a>,
-        name: String,
-    ) -> PyResult<&'a PyAny> {
+    fn lock<'a>(&'a self, py: Python<'a>, name: String) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -177,11 +173,7 @@ impl PyCommunicator {
         })
     }
 
-    fn unlock<'a>(
-        &'a self,
-        py: Python<'a>,
-        key: String,
-    ) -> PyResult<&'a PyAny> {
+    fn unlock<'a>(&'a self, py: Python<'a>, key: String) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -190,11 +182,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_grant<'a>(
-        &'a self,
-        py: Python<'a>,
-        ttl: i64,
-    ) -> PyResult<&'a PyAny> {
+    fn lease_grant<'a>(&'a self, py: Python<'a>, ttl: i64) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -203,11 +191,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_revoke<'a>(
-        &'a self,
-        py: Python<'a>,
-        id: i64,
-    ) -> PyResult<&'a PyAny> {
+    fn lease_revoke<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -216,11 +200,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_time_to_live<'a>(
-        &'a self,
-        py: Python<'a>,
-        id: i64,
-    ) -> PyResult<&'a PyAny> {
+    fn lease_time_to_live<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;

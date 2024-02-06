@@ -17,42 +17,45 @@ pub struct PyConnectOptions(pub ConnectOptions);
 impl PyConnectOptions {
     #[new]
     fn new() -> Self {
-        Self(ConnectOptions::default())
+        Self(ConnectOptions::new())
     }
 
     fn with_user(&self, name: String, password: String) -> Self {
         PyConnectOptions(self.0.clone().with_user(name, password))
     }
 
-    fn with_keep_alive(&self, interval: u64, timeout: u64) -> Self {
-        PyConnectOptions(
-            self.0
-                .clone()
-                .with_keep_alive(Duration::from_secs(interval), Duration::from_secs(timeout)),
-        )
+    fn with_keep_alive(&self, interval: f64, timeout: f64) -> Self {
+        PyConnectOptions(self.0.clone().with_keep_alive(
+            Duration::from_secs_f64(interval),
+            Duration::from_secs_f64(timeout),
+        ))
     }
 
     fn with_keep_alive_while_idle(&self, enabled: bool) -> Self {
         PyConnectOptions(self.0.clone().with_keep_alive_while_idle(enabled))
     }
 
-    fn with_connect_timeout(&self, connect_timeout: u64) -> Self {
+    fn with_connect_timeout(&self, connect_timeout: f64) -> Self {
         PyConnectOptions(
             self.0
                 .clone()
-                .with_connect_timeout(Duration::from_secs(connect_timeout)),
+                .with_connect_timeout(Duration::from_secs_f64(connect_timeout)),
         )
     }
 
-    fn with_timeout(&self, timeout: u64) -> Self {
-        PyConnectOptions(self.0.clone().with_timeout(Duration::from_secs(timeout)))
-    }
-
-    fn with_tcp_keepalive(&self, tcp_keepalive: u64) -> Self {
+    fn with_timeout(&self, timeout: f64) -> Self {
         PyConnectOptions(
             self.0
                 .clone()
-                .with_tcp_keepalive(Duration::from_secs(tcp_keepalive)),
+                .with_timeout(Duration::from_secs_f64(timeout)),
+        )
+    }
+
+    fn with_tcp_keepalive(&self, tcp_keepalive: f64) -> Self {
+        PyConnectOptions(
+            self.0
+                .clone()
+                .with_tcp_keepalive(Duration::from_secs_f64(tcp_keepalive)),
         )
     }
 

@@ -157,7 +157,7 @@ class AsyncEtcd:
         ).check(scope_prefix_map)
 
         if credentials is not None:
-            self._connect_options = ConnectOptions().with_username(
+            self._connect_options = ConnectOptions().with_user(
                 credentials["user"], credentials["password"]
             )
         else:
