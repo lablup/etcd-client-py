@@ -2,8 +2,15 @@
 Type hints for Native Rust Extension
 """
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, AsyncIterator, Final, Optional
+
+@dataclass
+class EtcdLockOption:
+    lock_name: str
+    timeout: Optional[float]
+    ttl: Optional[int]
 
 class CompareOp:
     """ """
@@ -22,7 +29,7 @@ class CompareOp:
     """
 
 class Compare:
-    @classmethod
+    @staticmethod
     def version(key: str, cmp: "CompareOp", version: int) -> "Compare": ...
     """
     Compares the version of the given key.
@@ -89,57 +96,62 @@ class TxnOp:
 
     @classmethod
     def get(key: str) -> "TxnOp": ...
-    @classmethod
+    @staticmethod
     def put(key: str, value: str) -> "TxnOp": ...
-    @classmethod
+    @staticmethod
     def delete(key: str) -> "TxnOp": ...
-    @classmethod
+    @staticmethod
     def txn(txn: "Txn") -> "TxnOp": ...
 
 class TxnResponse:
     def succeeded(self) -> bool: ...
-    """
-    Returns `true` if the compare evaluated to true or `false` otherwise.
-    """
 
 class Client:
     """ """
 
     def __init__(
-        self, endpoints: list[str], options: Optional["ConnectOptions"] = None
+        self, endpoints: list[str], connect_options: Optional["ConnectOptions"] = None
     ) -> None:
         """ """
-    def connect(self, options: Optional["ConnectOptions"] = None) -> "Client":
+    def connect(self, connect_options: Optional["ConnectOptions"] = None) -> "Client":
+        """ """
+    def with_lock(
+        self,
+        lock_options: "EtcdLockOption",
+        connect_options: Optional["ConnectOptions"] = None,
+    ) -> "Client":
         """ """
     async def __aenter__(self) -> "Communicator":
-        """
-        Connect to `etcd` servers from given `endpoints`.
-        """
+        """ """
+    async def __aexit__(self, *args) -> None:
+        """ """
 
 class ConnectOptions:
     def __init__(self) -> None: ...
     def with_user(self, user: str, password: str) -> "ConnectOptions": ...
-    """
-    name is the identifier for the distributed shared lock to be acquired.
-    """
-    def with_keep_alive(self, interval: int, timeout: int) -> "ConnectOptions": ...
-    """
-    Enable HTTP2 keep-alive with `interval` and `timeout`.
-    """
+    def with_keep_alive(self, interval: float, timeout: float) -> "ConnectOptions": ...
     def with_keep_alive_while_idle(self, enabled: bool) -> "ConnectOptions": ...
-    """
-    Whether send keep alive pings even there are no active requests.
-    If disabled, keep-alive pings are only sent while there are opened request/response streams.
-    If enabled, pings are also sent when no streams are active.
-    NOTE: Some implementations of gRPC server may send GOAWAY if there are too many pings.
-          This would be useful if you meet some error like `too many pings`.
-    """
-    def with_connect_timeout(self, connect_timeout: int) -> "ConnectOptions": ...
-    """Apply a timeout to connecting to the endpoint."""
-    def with_timeout(self, timeout: int) -> "ConnectOptions": ...
-    """Apply a timeout to each request."""
-    def with_tcp_keepalive(self, tcp_keepalive: int) -> "ConnectOptions": ...
-    """Enable TCP keepalive."""
+    def with_connect_timeout(self, connect_timeout: float) -> "ConnectOptions": ...
+    def with_timeout(self, timeout: float) -> "ConnectOptions": ...
+    def with_tcp_keepalive(self, tcp_keepalive: float) -> "ConnectOptions": ...
+
+class Watch:
+    """ """
+
+    def __aiter__(self) -> AsyncIterator["WatchEvent"]:
+        """ """
+    async def __anext__(self) -> "WatchEvent":
+        """ """
+
+class CondVar:
+    """ """
+
+    def __init__(self) -> None:
+        """ """
+    async def wait(self) -> None:
+        """ """
+    async def notify_waiters(self) -> None:
+        """ """
 
 class Communicator:
     async def get(self, key: str) -> str:
@@ -206,6 +218,11 @@ class Communicator:
         """Revokes a lease. All keys attached to the lease will expire and be deleted."""
     async def lease_time_to_live(self, id: int) -> None:
         """Retrieves lease information."""
+    async def lease_keep_alive(self, id: int) -> None:
+        """
+        Keeps the lease alive by streaming keep alive requests from the client
+        to the server and streaming keep alive responses from the server to the client.
+        """
     def watch(
         self,
         key: str,
@@ -246,13 +263,13 @@ class WatchEvent:
 
     key: str
     value: str
-    event_type: "WatchEventType"
+    event: "WatchEventType"
     prev_value: Optional[str]
 
     def __init__(
         key: str,
         value: str,
-        event_type: "WatchEventType",
+        event: "WatchEventType",
         prev_value: Optional[str] = None,
     ) -> None: ...
 
@@ -310,6 +327,9 @@ class InvalidHeaderValueError(ClientError):
     """ """
 
 class EndpointError(ClientError):
+    """ """
+
+class LockError(ClientError):
     """ """
 
 class GRpcStatusCode(Enum):

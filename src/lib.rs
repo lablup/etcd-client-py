@@ -3,6 +3,7 @@ mod communicator;
 mod compare;
 mod condvar;
 mod error;
+mod lock_manager;
 mod txn;
 mod txn_response;
 mod watch;
@@ -18,6 +19,7 @@ use error::{
     InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError, PyGRpcStatusCode,
     TransportError, Utf8Error, WatchError,
 };
+use lock_manager::PyEtcdLockOption;
 use pyo3::prelude::*;
 use txn::{PyTxn, PyTxnOp};
 use txn_response::PyTxnResponse;
@@ -41,6 +43,7 @@ fn etcd_client(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_class::<PyTxn>()?;
     module.add_class::<PyTxnOp>()?;
     module.add_class::<PyTxnResponse>()?;
+    module.add_class::<PyEtcdLockOption>()?;
 
     module.add_class::<PyGRpcStatusCode>()?;
 

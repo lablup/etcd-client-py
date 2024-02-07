@@ -13,6 +13,7 @@ create_exception!(etcd_client, LeaseKeepAliveError, ClientError);
 create_exception!(etcd_client, ElectError, ClientError);
 create_exception!(etcd_client, InvalidHeaderValueError, ClientError);
 create_exception!(etcd_client, EndpointError, ClientError);
+create_exception!(etcd_client, LockError, ClientError);
 
 #[pyclass(name = "GRpcStatusCode")]
 pub enum PyGRpcStatusCode {

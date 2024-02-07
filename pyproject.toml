@@ -21,5 +21,5 @@ homepage = "https://github.com/lablup/etcd-client-py"
 repository = "https://github.com/lablup/etcd-client-py"
 
 [build-system]
-requires = ["maturin>=0.15,<0.16"]
+requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"

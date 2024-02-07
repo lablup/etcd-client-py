@@ -11,4 +11,8 @@ impl PyTxnResponse {
     pub fn succeeded(&self) -> PyResult<bool> {
         Ok(self.0.succeeded())
     }
+
+    pub fn __repr__(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }

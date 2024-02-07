@@ -18,6 +18,7 @@ pub struct PyCommunicator(pub Arc<Mutex<EtcdClient>>);
 
 #[pymethods]
 impl PyCommunicator {
+    // TODO: Implement and use the CRUD response types
     fn get<'a>(&'a self, py: Python<'a>, key: String) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
@@ -164,11 +165,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lock<'a>(
-        &'a self,
-        py: Python<'a>,
-        name: String,
-    ) -> PyResult<&'a PyAny> {
+    fn lock<'a>(&'a self, py: Python<'a>, name: String) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -177,11 +174,7 @@ impl PyCommunicator {
         })
     }
 
-    fn unlock<'a>(
-        &'a self,
-        py: Python<'a>,
-        key: String,
-    ) -> PyResult<&'a PyAny> {
+    fn unlock<'a>(&'a self, py: Python<'a>, key: String) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -190,11 +183,8 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_grant<'a>(
-        &'a self,
-        py: Python<'a>,
-        ttl: i64,
-    ) -> PyResult<&'a PyAny> {
+    // TODO: Implement and use the response types of `lease` type's methods
+    fn lease_grant<'a>(&'a self, py: Python<'a>, ttl: i64) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -203,11 +193,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_revoke<'a>(
-        &'a self,
-        py: Python<'a>,
-        id: i64,
-    ) -> PyResult<&'a PyAny> {
+    fn lease_revoke<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -216,15 +202,20 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_time_to_live<'a>(
-        &'a self,
-        py: Python<'a>,
-        id: i64,
-    ) -> PyResult<&'a PyAny> {
+    fn lease_time_to_live<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.lease_time_to_live(id, None).await;
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
+        })
+    }
+
+    fn lease_keep_alive<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            let result = client.lease_keep_alive(id).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
         })
     }
@@ -252,5 +243,11 @@ impl PyCommunicator {
         let once = once.unwrap_or(false);
         let options = WatchOptions::new().with_prefix();
         PyWatch::new(client, key, once, Some(options), ready_event, cleanup_event)
+    }
+}
+
+impl PyCommunicator {
+    pub fn new(client: EtcdClient) -> PyCommunicator {
+        PyCommunicator(Arc::new(Mutex::new(client)))
     }
 }
