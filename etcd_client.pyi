@@ -2,8 +2,15 @@
 Type hints for Native Rust Extension
 """
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, AsyncIterator, Final, Optional
+
+@dataclass
+class EtcdLockOption:
+    lock_name: str
+    timeout: Optional[float]
+    ttl: Optional[int]
 
 class CompareOp:
     """ """
@@ -59,10 +66,16 @@ class Client:
     """ """
 
     def __init__(
-        self, endpoints: list[str], options: Optional["ConnectOptions"] = None
+        self, endpoints: list[str], connect_options: Optional["ConnectOptions"] = None
     ) -> None:
         """ """
-    def connect(self, options: Optional["ConnectOptions"] = None) -> "Client":
+    def connect(self, connect_options: Optional["ConnectOptions"] = None) -> "Client":
+        """ """
+    def with_lock(
+        self,
+        lock_options: "EtcdLockOption",
+        connect_options: Optional["ConnectOptions"] = None,
+    ) -> "Client":
         """ """
     async def __aenter__(self) -> "Communicator":
         """ """
@@ -124,6 +137,8 @@ class Communicator:
     async def lease_revoke(self, id: int) -> None:
         """ """
     async def lease_time_to_live(self, id: int) -> None:
+        """ """
+    async def lease_keep_alive(self, id: int) -> None:
         """ """
     def watch(
         self,
@@ -201,6 +216,9 @@ class InvalidHeaderValueError(ClientError):
     """ """
 
 class EndpointError(ClientError):
+    """ """
+
+class LockError(ClientError):
     """ """
 
 class GRpcStatusCode(Enum):

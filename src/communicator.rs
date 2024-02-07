@@ -18,6 +18,7 @@ pub struct PyCommunicator(pub Arc<Mutex<EtcdClient>>);
 
 #[pymethods]
 impl PyCommunicator {
+    // TODO: Implement and use the CRUD response types
     fn get<'a>(&'a self, py: Python<'a>, key: String) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
@@ -182,6 +183,7 @@ impl PyCommunicator {
         })
     }
 
+    // TODO: Implement and use the response types of `lease` type's methods
     fn lease_grant<'a>(&'a self, py: Python<'a>, ttl: i64) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
         future_into_py(py, async move {
@@ -209,6 +211,15 @@ impl PyCommunicator {
         })
     }
 
+    fn lease_keep_alive<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
+        let client = self.0.clone();
+        future_into_py(py, async move {
+            let mut client = client.lock().await;
+            let result = client.lease_keep_alive(id).await;
+            result.map(|_| ()).map_err(|e| PyClientError(e).into())
+        })
+    }
+
     fn watch(
         &self,
         key: String,
@@ -232,5 +243,11 @@ impl PyCommunicator {
         let once = once.unwrap_or(false);
         let options = WatchOptions::new().with_prefix();
         PyWatch::new(client, key, once, Some(options), ready_event, cleanup_event)
+    }
+}
+
+impl PyCommunicator {
+    pub fn new(client: EtcdClient) -> PyCommunicator {
+        PyCommunicator(Arc::new(Mutex::new(client)))
     }
 }

@@ -8,9 +8,10 @@ use tokio::sync::Mutex;
 
 use crate::communicator::PyCommunicator;
 use crate::error::PyClientError;
+use crate::lock_manager::{EtcdLockManager, PyEtcdLockOption};
 
 #[pyclass(name = "ConnectOptions")]
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct PyConnectOptions(pub ConnectOptions);
 
 #[pymethods]
@@ -65,37 +66,98 @@ impl PyConnectOptions {
 #[pyclass(name = "Client")]
 #[derive(Clone)]
 pub struct PyClient {
-    endpoints: Vec<String>,
-    options: PyConnectOptions,
+    pub endpoints: Vec<String>,
+    pub connect_options: PyConnectOptions,
+    pub lock_options: Option<PyEtcdLockOption>,
+    pub lock_manager: Option<Arc<Mutex<EtcdLockManager>>>,
 }
 
 #[pymethods]
 impl PyClient {
     #[new]
-    fn new(endpoints: Vec<String>, options: Option<PyConnectOptions>) -> Self {
-        let options = options.unwrap_or(PyConnectOptions::default());
-        Self { endpoints, options }
+    fn new(
+        endpoints: Vec<String>,
+        connect_options: Option<PyConnectOptions>,
+        lock_options: Option<PyEtcdLockOption>,
+    ) -> Self {
+        let connect_options = connect_options.unwrap_or(PyConnectOptions::default());
+        Self {
+            endpoints,
+            connect_options,
+            lock_options,
+            lock_manager: None,
+        }
     }
 
-    fn connect(&self, options: Option<PyConnectOptions>) -> Self {
+    fn __repr__(&self) -> String {
+        format!(
+            "Client(endpoints={:?}, connect_options={:?}, lock_options={:?})",
+            self.endpoints, self.connect_options, self.lock_options
+        )
+    }
+
+    pub fn connect(&self, connect_options: Option<PyConnectOptions>) -> Self {
         let mut result = self.clone();
-        result.options = options.unwrap_or(self.options.clone());
+        result.connect_options = connect_options.unwrap_or(self.connect_options.clone());
         result
     }
 
-    fn __aenter__<'a>(&'a self, py: Python<'a>) -> PyResult<&'a PyAny> {
+    pub fn with_lock(
+        &self,
+        lock_options: PyEtcdLockOption,
+        connect_options: Option<PyConnectOptions>,
+    ) -> Self {
+        let mut result = self.clone();
+        result.connect_options = connect_options.unwrap_or(self.connect_options.clone());
+        result.lock_options = Some(lock_options);
+        result
+    }
+
+    fn __aenter__<'a>(&'a mut self, py: Python<'a>) -> PyResult<&'a PyAny> {
         let endpoints = self.endpoints.clone();
-        let options = self.options.clone();
+        let connect_options = self.connect_options.clone();
+        let lock_options = self.lock_options.clone();
+
+        let lock_manager = if let Some(ref lock_options) = lock_options {
+            self.lock_manager = Some(Arc::new(Mutex::new(EtcdLockManager::new(
+                self.clone(),
+                lock_options.clone(),
+            ))));
+
+            Some(self.lock_manager.clone().unwrap())
+        } else {
+            None
+        };
+
         future_into_py(py, async move {
-            let result = EtcdClient::connect(endpoints, Some(options.0)).await;
-            result
-                .map(|client| PyCommunicator(Arc::new(Mutex::new(client))))
-                .map_err(|e| PyClientError(e).into())
+            match EtcdClient::connect(endpoints, Some(connect_options.0)).await {
+                Ok(client) => {
+                    if let Some(lock_manager) = lock_manager {
+                        Ok(lock_manager.lock().await.handle_aenter().await?)
+                    } else {
+                        Ok(PyCommunicator::new(client))
+                    }
+                }
+                Err(e) => Err(PyClientError(e).into()),
+            }
         })
     }
 
     #[pyo3(signature = (*_args))]
     fn __aexit__<'a>(&'a self, py: Python<'a>, _args: &PyTuple) -> PyResult<&'a PyAny> {
-        future_into_py(py, async move { Ok(()) })
+        let lock_options = self.lock_options.clone();
+
+        let lock_manager = if lock_options.is_some() {
+            Some(self.lock_manager.clone().unwrap())
+        } else {
+            None
+        };
+
+        future_into_py(py, async move {
+            if let Some(lock_manager) = lock_manager {
+                return lock_manager.lock().await.handle_aexit().await;
+            }
+            Ok(())
+        })
     }
 }
