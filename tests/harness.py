@@ -170,7 +170,7 @@ class AsyncEtcd:
 
         self.etcd = EtcdClient(
             [f"http://{addr.host}:{addr.port}"],
-            options=self._connect_options,
+            connect_options=self._connect_options,
         )
 
     async def close(self):
