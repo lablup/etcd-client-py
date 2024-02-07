@@ -147,10 +147,9 @@ impl EtcdLockManager {
             .map_err(PyClientError)?;
 
         if self.lock_id.is_none() {
-            return Err(PyClientError(etcd_client::Error::LockError(
-                "Trying to release EtcdLock before the lock has been acquired!".to_owned(),
-            ))
-            .into());
+            return Err(LockError::new_err(
+                "Attempting to release EtcdLock before it has been acquired!".to_string(),
+            ));
         }
 
         if let Some(ref lease_keepalive_task) = self.lease_keepalive_task {

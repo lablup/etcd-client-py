@@ -1,5 +1,5 @@
 [project]
-name = "etcd-client-py-test"
+name = "etcd-client-py"
 description = "Yet another etcd-client API binding based on the Rust's etcd-client package"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.10"

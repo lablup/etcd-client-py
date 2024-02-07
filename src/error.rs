@@ -82,7 +82,6 @@ impl From<PyClientError> for PyErr {
             etcd_client::Error::EndpointError(e) => {
                 EndpointError::new_err(format!("EndpointError(err={})", e))
             }
-            etcd_client::Error::LockError(e) => LockError::new_err(format!("LockError(err={})", e)),
         }
     }
 }
