@@ -34,22 +34,22 @@ class Compare:
     """
     Compares the version of the given key.
     """
-    @classmethod
+    @staticmethod
     def create_revision(key: str, cmp: "CompareOp", revision: int) -> "Compare": ...
     """
     Compares the creation revision of the given key.
     """
-    @classmethod
+    @staticmethod
     def mod_revision(key: str, cmp: "CompareOp", revision: int) -> "Compare": ...
     """
     Compares the last modified revision of the given key.
     """
-    @classmethod
+    @staticmethod
     def value(key: str, cmp: "CompareOp", value: str) -> "Compare": ...
     """
     Compares the value of the given key.
     """
-    @classmethod
+    @staticmethod
     def lease(key: str, cmp: "CompareOp", lease: int) -> "Compare": ...
     """
     Compares the lease id of the given key.
@@ -94,7 +94,7 @@ class TxnOp:
     Transaction operation.
     """
 
-    @classmethod
+    @staticmethod
     def get(key: str) -> "TxnOp": ...
     @staticmethod
     def put(key: str, value: str) -> "TxnOp": ...
