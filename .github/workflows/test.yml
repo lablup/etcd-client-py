@@ -6,9 +6,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    container:
-      image: python:3.12
-
     steps:
     - uses: actions/checkout@v3
     - name: Install etcd
@@ -27,6 +24,10 @@ jobs:
       with:
         toolchain: stable
         override: true
+
+    - name: Install protobuf compiler
+      run: |
+        sudo apt install -y protobuf-compiler
 
     - name: Install dependencies and build the package
       run: |
