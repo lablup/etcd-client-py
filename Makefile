@@ -12,4 +12,4 @@ fmt:
 	cargo fmt
 
 lint:
-	cargo clippy 
+	cargo clippy
