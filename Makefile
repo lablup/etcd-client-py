@@ -13,3 +13,6 @@ fmt:
 
 lint:
 	cargo clippy 
+
+test:
+	python -m test
