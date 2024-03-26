@@ -12,7 +12,4 @@ fmt:
 	cargo fmt
 
 lint:
-	cargo clippy 
-
-test:
-	python -m test
+	cargo clippy
