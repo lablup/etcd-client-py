@@ -1,18 +1,18 @@
 use crate::{
     client::PyClient,
     communicator::PyCommunicator,
-    error::{GRpcStatusError, LockError, PyClientError},
+    error::{GRPCStatusError, LockError, PyClientError},
 };
 use etcd_client::{Client as EtcdClient, LockOptions};
 
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyBytes};
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 
 #[derive(Debug, Clone)]
 #[pyclass(get_all, set_all, name = "EtcdLockOption")]
 pub struct PyEtcdLockOption {
-    pub lock_name: String,
+    pub lock_name: Vec<u8>,
     pub timeout: Option<f64>,
     pub ttl: Option<i64>,
 }
@@ -20,7 +20,8 @@ pub struct PyEtcdLockOption {
 #[pymethods]
 impl PyEtcdLockOption {
     #[new]
-    fn new(lock_name: String, timeout: Option<f64>, ttl: Option<i64>) -> Self {
+    fn new(lock_name: &PyBytes, timeout: Option<f64>, ttl: Option<i64>) -> Self {
+        let lock_name = lock_name.as_bytes().to_vec();
         Self {
             lock_name,
             timeout,
@@ -30,7 +31,7 @@ impl PyEtcdLockOption {
 
     fn __repr__(&self) -> PyResult<String> {
         Ok(format!(
-            "EtcdLockOption(lock_name={}, timeout={:?}, ttl={:?})",
+            "EtcdLockOption(lock_name={:?}, timeout={:?}, ttl={:?})",
             self.lock_name, self.timeout, self.ttl
         ))
     }
@@ -38,16 +39,18 @@ impl PyEtcdLockOption {
 
 pub struct EtcdLockManager {
     pub client: PyClient,
-    pub lock_name: String,
+    pub lock_name: Vec<u8>,
     pub ttl: Option<i64>,
     pub timeout_seconds: Option<f64>,
-    pub lock_id: Option<String>,
+    pub lock_id: Option<Vec<u8>>,
     pub lease_id: Option<i64>,
     pub lease_keepalive_task: Option<tokio::task::JoinHandle<Result<(), PyClientError>>>,
 }
 
 impl EtcdLockManager {
     pub fn new(client: PyClient, lock_opt: PyEtcdLockOption) -> Self {
+        let lock_name = lock_opt.lock_name.clone();
+
         Self {
             client,
             lock_name: lock_opt.lock_name,
@@ -98,15 +101,11 @@ impl EtcdLockManager {
                         .map(|lease_id| LockOptions::new().with_lease(lease_id));
 
                     let lock_res = client
-                        .lock(self.lock_name.clone().as_bytes(), lock_req_options)
+                        .lock(self.lock_name.clone(), lock_req_options)
                         .await
                         .map_err(PyClientError)?;
 
-                    self.lock_id = Some(
-                        std::str::from_utf8(lock_res.key())
-                            .expect("Invalid utf8 chars includeded in lock request!")
-                            .to_owned(),
-                    );
+                    self.lock_id = Some(lock_res.key().to_vec());
                     Ok(())
                 },
             )
@@ -123,7 +122,7 @@ impl EtcdLockManager {
                             etcd_client::Error::GRpcStatus(status)
                                 if status.code() != tonic::Code::NotFound =>
                             {
-                                return Err(GRpcStatusError::new_err(status.to_string()))
+                                return Err(GRPCStatusError::new_err(status.to_string()))
                             }
                             _ => return Err(PyClientError(e).into()),
                         },
@@ -160,7 +159,11 @@ impl EtcdLockManager {
             client.lease_revoke(lease_id).await.map_err(PyClientError)?;
         } else {
             client
-                .unlock(self.lock_id.as_ref().unwrap().as_bytes())
+                .unlock(
+                    self.lock_id
+                        .to_owned()
+                        .expect("Failed to unlock due to lock_id is None"),
+                )
                 .await
                 .map_err(PyClientError)?;
         }

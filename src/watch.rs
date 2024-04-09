@@ -16,7 +16,7 @@ use crate::watch_event_stream::PyWatchEventStream;
 #[derive(Clone)]
 pub struct PyWatch {
     client: Arc<Mutex<EtcdClient>>,
-    key: String,
+    key: Vec<u8>,
     once: bool,
     options: Option<WatchOptions>,
     watcher: Arc<Mutex<Option<Watcher>>>,
@@ -30,7 +30,7 @@ pub struct PyWatch {
 impl PyWatch {
     pub fn new(
         client: Arc<Mutex<EtcdClient>>,
-        key: String,
+        key: Vec<u8>,
         once: bool,
         options: Option<WatchOptions>,
         ready_event: Option<PyCondVar>,

@@ -7,10 +7,10 @@ use pyo3::pyclass::CompareOp;
 #[pyclass(get_all, name = "WatchEvent")]
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub struct PyWatchEvent {
-    key: String,
-    value: String,
+    key: Vec<u8>,
+    value: Vec<u8>,
     event: PyWatchEventType,
-    prev_value: Option<String>,
+    prev_value: Option<Vec<u8>>,
 }
 
 #[pymethods]
@@ -18,10 +18,10 @@ impl PyWatchEvent {
     #[new]
     #[pyo3(signature = (key, value, event, prev_value))]
     fn new(
-        key: String,
-        value: String,
+        key: Vec<u8>,
+        value: Vec<u8>,
         event: PyWatchEventType,
-        prev_value: Option<String>,
+        prev_value: Option<Vec<u8>>,
     ) -> Self {
         Self {
             key,
@@ -33,7 +33,7 @@ impl PyWatchEvent {
 
     pub fn __repr__(&self) -> String {
         format!(
-            "Event(event={:?}, key={}, value={}, prev_value={:?})",
+            "Event(event={:?}, key={:?}, value={:?}, prev_value={:?})",
             self.event, self.key, self.value, self.prev_value
         )
     }
@@ -50,8 +50,8 @@ impl PyWatchEvent {
 impl From<EtcdClientEvent> for PyWatchEvent {
     fn from(event: EtcdClientEvent) -> Self {
         let kv = event.kv().unwrap();
-        let key = String::from_utf8(kv.key().to_owned()).unwrap();
-        let value = String::from_utf8(kv.value().to_owned()).unwrap();
+        let key = kv.key().to_owned();
+        let value = kv.value().to_owned();
         let prev_value = None;
         let event = PyWatchEventType(event.event_type());
         Self {
