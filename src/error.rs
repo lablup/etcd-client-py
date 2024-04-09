@@ -2,7 +2,7 @@ use pyo3::{create_exception, exceptions::PyException, types::PyDict, PyErr, Pyth
 use std::fmt::Debug;
 
 create_exception!(etcd_client, ClientError, PyException);
-create_exception!(etcd_client, GRpcStatusError, ClientError);
+create_exception!(etcd_client, GRPCStatusError, ClientError);
 create_exception!(etcd_client, InvalidArgsError, ClientError);
 create_exception!(etcd_client, InvalidUriError, ClientError);
 create_exception!(etcd_client, IoError, ClientError);
@@ -15,8 +15,8 @@ create_exception!(etcd_client, InvalidHeaderValueError, ClientError);
 create_exception!(etcd_client, EndpointError, ClientError);
 create_exception!(etcd_client, LockError, ClientError);
 
-#[pyclass(name = "GRpcStatusCode")]
-pub enum PyGRpcStatusCode {
+#[pyclass(name = "GRPCStatusCode")]
+pub enum PyGRPCStatusCode {
     Ok = 0,
     Cancelled = 1,
     Unknown = 2,
@@ -54,7 +54,7 @@ impl From<PyClientError> for PyErr {
                     .unwrap();
 
                 let kv_args: PyObject = error_details.into_py(py);
-                GRpcStatusError::new_err(kv_args)
+                GRPCStatusError::new_err(kv_args)
             }),
             etcd_client::Error::InvalidArgs(e) => {
                 InvalidArgsError::new_err(format!("InvalidArgsError(err={})", e))

@@ -1,6 +1,7 @@
 use etcd_client::{Compare, CompareOp};
 use pyo3::prelude::*;
 use pyo3::pyclass::CompareOp as PyO3CompareOp;
+use pyo3::types::PyBytes;
 
 #[derive(Clone)]
 #[pyclass(name = "CompareOp")]
@@ -42,31 +43,38 @@ pub struct PyCompare(pub Compare);
 #[pymethods]
 impl PyCompare {
     #[staticmethod]
-    fn version(key: String, cmp: PyCompareOp, version: i64) -> PyResult<Self> {
+    fn version(key: &PyBytes, cmp: PyCompareOp, version: i64) -> PyResult<Self> {
+        let key = key.as_bytes().to_vec();
         Ok(PyCompare(Compare::version(key, cmp.0, version)))
     }
 
     #[staticmethod]
-    fn create_revision(key: String, cmp: PyCompareOp, revision: i64) -> PyResult<Self> {
+    fn create_revision(key: &PyBytes, cmp: PyCompareOp, revision: i64) -> PyResult<Self> {
+        let key = key.as_bytes().to_vec();
         Ok(PyCompare(Compare::create_revision(key, cmp.0, revision)))
     }
 
     #[staticmethod]
-    fn mod_revision(key: String, cmp: PyCompareOp, revision: i64) -> PyResult<Self> {
+    fn mod_revision(key: &PyBytes, cmp: PyCompareOp, revision: i64) -> PyResult<Self> {
+        let key = key.as_bytes().to_vec();
         Ok(PyCompare(Compare::mod_revision(key, cmp.0, revision)))
     }
 
     #[staticmethod]
-    fn value(key: String, cmp: PyCompareOp, value: String) -> PyResult<Self> {
+    fn value(key: &PyBytes, cmp: PyCompareOp, value: &PyBytes) -> PyResult<Self> {
+        let key = key.as_bytes().to_vec();
+        let value = value.as_bytes().to_vec();
         Ok(PyCompare(Compare::value(key, cmp.0, value)))
     }
 
     #[staticmethod]
-    fn lease(key: String, cmp: PyCompareOp, lease: i64) -> PyResult<Self> {
+    fn lease(key: &PyBytes, cmp: PyCompareOp, lease: i64) -> PyResult<Self> {
+        let key = key.as_bytes().to_vec();
         Ok(PyCompare(Compare::lease(key, cmp.0, lease)))
     }
 
-    fn with_range(&self, end: String) -> PyResult<Self> {
+    fn with_range(&self, end: &PyBytes) -> PyResult<Self> {
+        let end = end.as_bytes().to_vec();
         Ok(PyCompare(self.0.clone().with_range(end)))
     }
 

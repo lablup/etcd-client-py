@@ -15,8 +15,8 @@ use communicator::PyCommunicator;
 use compare::{PyCompare, PyCompareOp};
 use condvar::PyCondVar;
 use error::{
-    ClientError, ElectError, EndpointError, GRpcStatusError, InvalidArgsError,
-    InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError, PyGRpcStatusCode,
+    ClientError, ElectError, EndpointError, GRPCStatusError, InvalidArgsError,
+    InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError, PyGRPCStatusCode,
     TransportError, Utf8Error, WatchError,
 };
 use lock_manager::PyEtcdLockOption;
@@ -45,10 +45,10 @@ fn etcd_client(py: Python, module: &PyModule) -> PyResult<()> {
     module.add_class::<PyTxnResponse>()?;
     module.add_class::<PyEtcdLockOption>()?;
 
-    module.add_class::<PyGRpcStatusCode>()?;
+    module.add_class::<PyGRPCStatusCode>()?;
 
     module.add("ClientError", py.get_type::<ClientError>())?;
-    module.add("GRpcStatusError", py.get_type::<GRpcStatusError>())?;
+    module.add("GRPCStatusError", py.get_type::<GRPCStatusError>())?;
     module.add("InvalidArgsError", py.get_type::<InvalidArgsError>())?;
     module.add("IoError", py.get_type::<IoError>())?;
     module.add("InvalidUriError", py.get_type::<InvalidUriError>())?;

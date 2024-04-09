@@ -8,7 +8,7 @@ from typing import Any, AsyncIterator, Final, Optional
 
 @dataclass
 class EtcdLockOption:
-    lock_name: str
+    lock_name: bytes
     timeout: Optional[float]
     ttl: Optional[int]
 
@@ -30,31 +30,31 @@ class CompareOp:
 
 class Compare:
     @staticmethod
-    def version(key: str, cmp: "CompareOp", version: int) -> "Compare": ...
+    def version(key: bytes, cmp: "CompareOp", version: int) -> "Compare": ...
     """
     Compares the version of the given key.
     """
     @staticmethod
-    def create_revision(key: str, cmp: "CompareOp", revision: int) -> "Compare": ...
+    def create_revision(key: bytes, cmp: "CompareOp", revision: int) -> "Compare": ...
     """
     Compares the creation revision of the given key.
     """
     @staticmethod
-    def mod_revision(key: str, cmp: "CompareOp", revision: int) -> "Compare": ...
+    def mod_revision(key: bytes, cmp: "CompareOp", revision: int) -> "Compare": ...
     """
     Compares the last modified revision of the given key.
     """
     @staticmethod
-    def value(key: str, cmp: "CompareOp", value: str) -> "Compare": ...
+    def value(key: bytes, cmp: "CompareOp", value: bytes) -> "Compare": ...
     """
     Compares the value of the given key.
     """
     @staticmethod
-    def lease(key: str, cmp: "CompareOp", lease: int) -> "Compare": ...
+    def lease(key: bytes, cmp: "CompareOp", lease: int) -> "Compare": ...
     """
     Compares the lease id of the given key.
     """
-    def with_range(self, end: list[int]) -> "Compare": ...
+    def with_range(self, end: bytes) -> "Compare": ...
     """
     Sets the comparison to scan the range [key, end).
     """
@@ -95,11 +95,11 @@ class TxnOp:
     """
 
     @staticmethod
-    def get(key: str) -> "TxnOp": ...
+    def get(key: bytes) -> "TxnOp": ...
     @staticmethod
-    def put(key: str, value: str) -> "TxnOp": ...
+    def put(key: bytes, value: bytes) -> "TxnOp": ...
     @staticmethod
-    def delete(key: str) -> "TxnOp": ...
+    def delete(key: bytes) -> "TxnOp": ...
     @staticmethod
     def txn(txn: "Txn") -> "TxnOp": ...
 
@@ -154,21 +154,15 @@ class CondVar:
         """ """
 
 class Communicator:
-    async def get(self, key: str) -> str:
+    async def get(self, key: bytes) -> list[int]:
         """
         Gets the key from the key-value store.
         """
-    async def get_prefix(self, key: str) -> dict[str, Any]:
+    async def get_prefix(self, key: bytes) -> list[tuple[list[int], list[int]]]:
         """
         Gets the key from the key-value store.
         """
-    async def put(self, key: str, value: str) -> None:
-        """
-        Put the given key into the key-value store.
-        A put request increments the revision of the key-value store
-        and generates one event in the event history.
-        """
-    async def put_prefix(self, key: str, value: dict[str, Any]) -> None:
+    async def put(self, key: bytes, value: bytes) -> None:
         """
         Put the given key into the key-value store.
         A put request increments the revision of the key-value store
@@ -181,19 +175,17 @@ class Communicator:
         and generates events with the same revision for every completed operation.
         It is not allowed to modify the same key several times within one txn.
         """
-    async def delete(self, key: str) -> None:
+    async def delete(self, key: bytes) -> None:
         """
         Deletes the given key from the key-value store.
         """
-    async def delete_prefix(self, key: str) -> None:
+    async def delete_prefix(self, key: bytes) -> None:
         """
         Deletes the given key from the key-value store.
         """
-    async def keys_prefix(self, key: str) -> list[str]:
+    async def keys_prefix(self, key: bytes) -> list[list[int]]:
         """ """
-    async def replace(self, key: str, initial_value: str, new_value: str) -> bool:
-        """ """
-    async def lock(self, name: str) -> None:
+    async def lock(self, name: bytes) -> None:
         """
         Lock acquires a distributed shared lock on a given named lock.
         On success, it will return a unique key that exists so long as the
@@ -202,7 +194,7 @@ class Communicator:
         lock ownership. The lock is held until Unlock is called on the key or the
         lease associate with the owner expires.
         """
-    async def unlock(self, key: str) -> None:
+    async def unlock(self, name: bytes) -> None:
         """
         Unlock takes a key returned by Lock and releases the hold on lock. The
         next Lock caller waiting for the lock will then be woken up and given
@@ -225,7 +217,7 @@ class Communicator:
         """
     def watch(
         self,
-        key: str,
+        key: bytes,
         *,
         once: Optional[bool] = False,
         ready_event: Optional["CondVar"] = None,
@@ -238,7 +230,7 @@ class Communicator:
         """
     def watch_prefix(
         self,
-        key: str,
+        key: bytes,
         *,
         once: Optional[bool] = False,
         ready_event: Optional["CondVar"] = None,
@@ -261,16 +253,16 @@ class Watch:
 class WatchEvent:
     """ """
 
-    key: str
-    value: str
+    key: bytes
+    value: bytes
     event: "WatchEventType"
-    prev_value: Optional[str]
+    prev_value: Optional[bytes]
 
     def __init__(
-        key: str,
-        value: str,
+        key: bytes,
+        value: bytes,
         event: "WatchEventType",
-        prev_value: Optional[str] = None,
+        prev_value: Optional[bytes] = None,
     ) -> None: ...
 
 class WatchEventType:
@@ -296,7 +288,7 @@ class CondVar:
 class ClientError(Exception):
     """ """
 
-class GRpcStatusError(ClientError):
+class GRPCStatusError(ClientError):
     """ """
 
 class InvalidArgsError(ClientError):
@@ -332,7 +324,7 @@ class EndpointError(ClientError):
 class LockError(ClientError):
     """ """
 
-class GRpcStatusCode(Enum):
+class GRPCStatusCode(Enum):
     Ok = 0
     """The operation completed successfully."""
 
