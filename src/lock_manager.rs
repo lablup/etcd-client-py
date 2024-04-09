@@ -49,8 +49,6 @@ pub struct EtcdLockManager {
 
 impl EtcdLockManager {
     pub fn new(client: PyClient, lock_opt: PyEtcdLockOption) -> Self {
-        let lock_name = lock_opt.lock_name.clone();
-
         Self {
             client,
             lock_name: lock_opt.lock_name,

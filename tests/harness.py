@@ -13,8 +13,6 @@ Fortunately, etcd3's watchers are not blocking because they are implemented
 using callbacks in separate threads.
 """
 
-from __future__ import annotations
-
 import asyncio
 from dataclasses import dataclass
 import enum
@@ -70,7 +68,7 @@ class HostPortPair:
         return f"{self.host}:{self.port}"
 
     @classmethod
-    def parse(cls, s: str) -> HostPortPair:
+    def parse(cls, s: str) -> "HostPortPair":
         if ":" in s:
             host, port_str = s.rsplit(":")
             port = int(port_str)
@@ -226,7 +224,7 @@ class AsyncEtcd:
         scope_prefix = self._merge_scope_prefix_map(scope_prefix_map)[scope]
         mangled_key = self._mangle_key(f"{_slash(scope_prefix)}{key}")
         async with self.etcd.connect() as communicator:
-            await communicator.put(mangled_key, str(val))
+            await communicator.put(mangled_key.encode(self.encoding), str(val).encode(self.encoding))
 
     async def put_prefix(
         self,
@@ -266,7 +264,7 @@ class AsyncEtcd:
             actions = []
             for k, v in flattened_dict.items():
                 actions.append(
-                    TxnOp.put(self._mangle_key(f"{_slash(scope_prefix)}{k}"), str(v))
+                    TxnOp.put(self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding), str(v).encode(self.encoding))
                 )
 
             await communicator.txn(
@@ -295,7 +293,7 @@ class AsyncEtcd:
         actions = []
         for k, v in flattened_dict_obj.items():
             actions.append(
-                TxnOp.put(self._mangle_key(f"{_slash(scope_prefix)}{k}"), str(v))
+                TxnOp.put(self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding), str(v).encode(self.encoding))
             )
 
         async with self.etcd.connect() as communicator:
@@ -343,11 +341,10 @@ class AsyncEtcd:
         async with self.etcd.connect() as communicator:
             for scope_prefix in scope_prefixes:
                 value = await communicator.get(
-                    self._mangle_key(f"{_slash(scope_prefix)}{key}")
+                    self._mangle_key(f"{_slash(scope_prefix)}{key}").encode(self.encoding)
                 )
                 if value is not None:
-                    value = bytes(value).decode(self.encoding)
-                    return value
+                    return bytes(value).decode(self.encoding)
         return None
 
     async def get_prefix(
@@ -416,9 +413,8 @@ class AsyncEtcd:
                 mangled_key_prefix = self._mangle_key(
                     f"{_slash(scope_prefix)}{key_prefix}"
                 )
-                values = await communicator.get_prefix(mangled_key_prefix)
+                values = await communicator.get_prefix(mangled_key_prefix.encode(self.encoding))
                 pair_sets.append(
-                    # [(self._demangle_key(bytes(k)), bytes(v).decode(self.encoding)) for k, v in values]
                     [(self._demangle_key(bytes(k).decode(self.encoding)), bytes(v).decode(self.encoding)) for k, v in values]
                 )
 
@@ -448,10 +444,10 @@ class AsyncEtcd:
                 EtcdTransactionAction()
                 .when(
                     [
-                        Compare.value(mangled_key, CompareOp.EQUAL, initial_val),
+                        Compare.value(mangled_key.encode(self.encoding), CompareOp.EQUAL, initial_val.encode(self.encoding)),
                     ]
                 )
-                .and_then([TxnOp.put(mangled_key, new_val)])
+                .and_then([TxnOp.put(mangled_key.encode(self.encoding), new_val.encode(self.encoding))])
                 .or_else([])
             )
 
@@ -467,7 +463,7 @@ class AsyncEtcd:
         scope_prefix = self._merge_scope_prefix_map(scope_prefix_map)[scope]
         mangled_key = self._mangle_key(f"{_slash(scope_prefix)}{key}")
         async with self.etcd.connect() as communicator:
-            await communicator.delete(mangled_key)
+            await communicator.delete(mangled_key.encode(self.encoding))
 
     async def delete_multi(
         self,
@@ -481,7 +477,7 @@ class AsyncEtcd:
             actions = []
             for k in keys:
                 actions.append(
-                    TxnOp.delete(self._mangle_key(f"{_slash(scope_prefix)}{k}"))
+                    TxnOp.delete(self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding))
                 )
             communicator.txn(EtcdTransactionAction().and_then(actions).or_else([]))
 
@@ -495,7 +491,7 @@ class AsyncEtcd:
         scope_prefix = self._merge_scope_prefix_map(scope_prefix_map)[scope]
         mangled_key_prefix = self._mangle_key(f"{_slash(scope_prefix)}{key_prefix}")
         async with self.etcd.connect() as communicator:
-            await communicator.delete_prefix(mangled_key_prefix)
+            await communicator.delete_prefix(mangled_key_prefix.encode(self.encoding))
 
     async def _watch_impl(
         self,
@@ -516,7 +512,7 @@ class AsyncEtcd:
                             )
                         except asyncio.TimeoutError:
                             pass
-                    yield Event(ev.key[scope_prefix_len:], ev.event, ev.value)
+                    yield Event(bytes(ev.key).decode(self.encoding)[scope_prefix_len:], ev.event, bytes(ev.value).decode(self.encoding))
                     if once:
                         return
         finally:
@@ -543,7 +539,7 @@ class AsyncEtcd:
             try:
                 async for ev in self._watch_impl(
                     lambda communicator: communicator.watch(
-                        mangled_key,
+                        mangled_key.encode(self.encoding),
                         ready_event=ready_event,
                     ),
                     scope_prefix_len,
@@ -585,7 +581,7 @@ class AsyncEtcd:
             try:
                 async for ev in self._watch_impl(
                     lambda communicator: communicator.watch_prefix(
-                        mangled_key_prefix,
+                        mangled_key_prefix.encode(self.encoding),
                         ready_event=ready_event,
                     ),
                     scope_prefix_len,

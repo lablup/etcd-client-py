@@ -1,4 +1,4 @@
-use etcd_client::{Client as EtcdClient, PutOptions};
+use etcd_client::Client as EtcdClient;
 use etcd_client::{DeleteOptions, GetOptions, WatchOptions};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
@@ -18,8 +18,9 @@ pub struct PyCommunicator(pub Arc<Mutex<EtcdClient>>);
 #[pymethods]
 impl PyCommunicator {
     // TODO: Implement and use the CRUD response types
-    fn get<'a>(&'a self, py: Python<'a>, key: String) -> PyResult<&'a PyAny> {
+    fn get<'a>(&'a self, py: Python<'a>, key: &PyBytes) -> PyResult<&'a PyAny> {
         let client = self.0.clone();
+        let key = key.as_bytes().to_vec();
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.get(key, None).await;
