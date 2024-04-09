@@ -1,4 +1,10 @@
 """
+Backend.AI AsyncEtcd Client Copy
+Ref: https://github.com/lablup/backend.ai/blob/main/src/ai/backend/common/etcd.py
+=================================================================================
+"""
+
+"""
 An asynchronous client wrapper for etcd v3 API.
 
 It uses the etcd3 library using a thread pool executor.
@@ -44,8 +50,8 @@ from etcd_client import (
     CompareOp,
     CondVar,
     ConnectOptions,
-    GRpcStatusCode,
-    GRpcStatusError,
+    GRPCStatusCode,
+    GRPCStatusError,
     WatchEvent,
 )
 
@@ -340,6 +346,7 @@ class AsyncEtcd:
                     self._mangle_key(f"{_slash(scope_prefix)}{key}")
                 )
                 if value is not None:
+                    value = bytes(value).decode(self.encoding)
                     return value
         return None
 
@@ -411,7 +418,8 @@ class AsyncEtcd:
                 )
                 values = await communicator.get_prefix(mangled_key_prefix)
                 pair_sets.append(
-                    [(self._demangle_key(k), v) for k, v in values.items()]
+                    # [(self._demangle_key(bytes(k)), bytes(v).decode(self.encoding)) for k, v in values]
+                    [(self._demangle_key(bytes(k).decode(self.encoding)), bytes(v).decode(self.encoding)) for k, v in values]
                 )
 
         configs = [
@@ -545,10 +553,10 @@ class AsyncEtcd:
                 ):
                     yield ev
                 ended_without_error = True
-            except GRpcStatusError as e:
+            except GRPCStatusError as e:
                 err_detail = e.args[0]
 
-                if err_detail["code"] == GRpcStatusCode.Unavailable:
+                if err_detail["code"] == GRPCStatusCode.Unavailable:
                     log.warn(
                         "watch(): error while connecting to Etcd server, retrying..."
                     )
@@ -587,10 +595,10 @@ class AsyncEtcd:
                 ):
                     yield ev
                 ended_without_error = True
-            except GRpcStatusError as e:
+            except GRPCStatusError as e:
                 err_detail = e.args[0]
 
-                if err_detail["code"] == GRpcStatusCode.Unavailable:
+                if err_detail["code"] == GRPCStatusCode.Unavailable:
                     log.warn(
                         "watch_prefix(): error while connecting to Etcd server, retrying..."
                     )
