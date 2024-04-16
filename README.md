@@ -192,8 +192,8 @@ Constructing compare operations can be done by comparing `Compare` instance.
 ```python
 from etcd_client import Compare, CompareOp
 compares = [
-    Compare.value('cmpkey1', CompareOp.EQUAL, 'foo'),
-    Compare.value('cmpkey2', CompareOp.GREATER, 'bar'),
+    Compare.value('cmpkey1'.encode(), CompareOp.EQUAL, 'foo'.encode()),
+    Compare.value('cmpkey2'.encode(), CompareOp.GREATER, 'bar'.encode()),
 ]
 ```
 
@@ -206,12 +206,11 @@ async with etcd.connect() as communicator:
     await communicator.put('successkey'.encode(), 'asdf'.encode())
 
     compares = [
-        Compare.value('cmpkey1', CompareOp.EQUAL, 'foo'),
-        Compare.value('cmpkey2', CompareOp.GREATER, 'bar'),
+        Compare.value('cmpkey1'.encode(), CompareOp.EQUAL, 'foo'.encode()),
+        Compare.value('cmpkey2'.encode(), CompareOp.GREATER, 'bar'.encode()),
     ]
 
-    txn = Txn()
-    res = await communicator.txn(txn.when(compares).and_then([TxnOp.get('successkey'.encode())]))
+    res = await communicator.txn(Txn().when(compares).and_then([TxnOp.get('successkey'.encode())]))
     print(res) # TODO: Need to write response type bindings.
 ```
 
