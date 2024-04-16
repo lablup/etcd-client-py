@@ -1,4 +1,4 @@
-# etcd Client Binding for Python using Rust
+# etcd-client-py
 
 [![PyPI release version](https://badge.fury.io/py/etcd-client-py.svg)](https://pypi.org/project/etcd-client-py/)
 ![Wheels](https://img.shields.io/pypi/wheel/etcd-client-py.svg)
@@ -15,13 +15,10 @@ pip install etcd_client
 
 ```python
 from etcd_client import EtcdClient
-etcd = EtcdClient(['http://127.0.0.1:2379'])
+etcd = EtcdClient(['http:://127.0.0.1:2379'])
 ```
 
-Actual connection establishment with Etcd's gRPC channel will be done
-when you call `EtcdClient.connect()`.
-
-This call returns async context manager, which manages `EtcdCommunicator` instance.
+Actual connection establishment with Etcd's gRPC channel will be done when you call `EtcdClient.connect()`.
 
 ```python
 async def main():
@@ -31,6 +28,7 @@ async def main():
         print(bytes(value).decode())  # testvalue
 ```
 
+`EtcdCommunicator.get_prefix(prefix)` will return a tuple of list containing all key-values with given key prefix.
 
 ```python
 async def main():
@@ -52,7 +50,7 @@ async def main():
 
 ## Operating with Etcd lock
 
-Just like `EtcdClient.connect()`, you can easilly use etcd lock by calling `EtcdClient.with_lock(lock_name, timeout=None)`.
+Just like `EtcdClient.connect()`, you can easilly use etcd lock by calling `EtcdClient.with_lock(lock_opts)`.
 
 ```python
 async def first():
@@ -185,7 +183,7 @@ await asyncio.gather(watch(), update())
 
 ## Transaction
 
-You can run etcd transaction by calling `EtcdCommunicator.txn_compare(compares, txn_builder)`.
+You can run etcd transaction by calling `EtcdCommunicator.txn(txn)`.
 
 ### Constructing compares
 
