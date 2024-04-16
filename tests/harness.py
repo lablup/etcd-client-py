@@ -40,7 +40,7 @@ from etcd_client import (
     ConnectOptions,
     GRPCStatusCode,
     GRPCStatusError,
-    WatchEvent,
+    Watch,
 )
 
 
@@ -142,13 +142,11 @@ class AsyncEtcd:
         encoding: str = "utf-8",
         watch_reconnect_intvl: float = 0.5,
     ) -> None:
-        self.scope_prefix_map = t.Dict(
-            {
-                t.Key(ConfigScopes.GLOBAL): t.String(allow_blank=True),
-                t.Key(ConfigScopes.SGROUP, optional=True): t.String,
-                t.Key(ConfigScopes.NODE, optional=True): t.String,
-            }
-        ).check(scope_prefix_map)
+        self.scope_prefix_map = t.Dict({
+            t.Key(ConfigScopes.GLOBAL): t.String(allow_blank=True),
+            t.Key(ConfigScopes.SGROUP, optional=True): t.String,
+            t.Key(ConfigScopes.NODE, optional=True): t.String,
+        }).check(scope_prefix_map)
 
         if credentials is not None:
             self._connect_options = ConnectOptions().with_user(
@@ -214,7 +212,9 @@ class AsyncEtcd:
         scope_prefix = self._merge_scope_prefix_map(scope_prefix_map)[scope]
         mangled_key = self._mangle_key(f"{_slash(scope_prefix)}{key}")
         async with self.etcd.connect() as communicator:
-            await communicator.put(mangled_key.encode(self.encoding), str(val).encode(self.encoding))
+            await communicator.put(
+                mangled_key.encode(self.encoding), str(val).encode(self.encoding)
+            )
 
     async def put_prefix(
         self,
@@ -250,16 +250,17 @@ class AsyncEtcd:
 
         _flatten(key, cast(NestedStrKeyedDict, dict_obj))
 
-        async with self.etcd.connect() as communicator:
-            actions = []
-            for k, v in flattened_dict.items():
-                actions.append(
-                    TxnOp.put(self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding), str(v).encode(self.encoding))
+        actions = []
+        for k, v in flattened_dict.items():
+            actions.append(
+                TxnOp.put(
+                    self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding),
+                    str(v).encode(self.encoding),
                 )
-
-            await communicator.txn(
-                EtcdTransactionAction().and_then(actions).or_else([])
             )
+
+        async with self.etcd.connect() as communicator:
+            await communicator.txn(EtcdTransactionAction().and_then(actions).or_else([]))
 
     async def put_dict(
         self,
@@ -273,7 +274,7 @@ class AsyncEtcd:
         Since the given dict must be a flattened one, its keys must be quoted as needed by the caller.
         For new codes, ``put_prefix()`` is recommended.
 
-        :param dict_obj: Flattened key-value pairs to put.
+        :param flattened_dict_obj: Flattened key-value pairs to put.
         :param scope: The config scope for putting the values.
         :param scope_prefix_map: The scope map used to mangle the prefix for the config scope.
         :return:
@@ -283,13 +284,14 @@ class AsyncEtcd:
         actions = []
         for k, v in flattened_dict_obj.items():
             actions.append(
-                TxnOp.put(self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding), str(v).encode(self.encoding))
+                TxnOp.put(
+                    self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding),
+                    str(v).encode(self.encoding),
+                )
             )
 
         async with self.etcd.connect() as communicator:
-            await communicator.txn(
-                EtcdTransactionAction().and_then(actions).or_else([])
-            )
+            await communicator.txn(EtcdTransactionAction().and_then(actions).or_else([]))
 
     async def get(
         self,
@@ -400,13 +402,17 @@ class AsyncEtcd:
         pair_sets: List[List[Mapping | Tuple]] = []
         async with self.etcd.connect() as communicator:
             for scope_prefix in scope_prefixes:
-                mangled_key_prefix = self._mangle_key(
-                    f"{_slash(scope_prefix)}{key_prefix}"
-                )
+                mangled_key_prefix = self._mangle_key(f"{_slash(scope_prefix)}{key_prefix}")
                 values = await communicator.get_prefix(mangled_key_prefix.encode(self.encoding))
-                pair_sets.append(
-                    [(self._demangle_key(bytes(k).decode(self.encoding)), bytes(v).decode(self.encoding)) for k, v in values]
-                )
+                pair_sets.append([
+                    (
+                        self._demangle_key(bytes(k).decode(self.encoding)),
+                        bytes(v).decode(self.encoding),
+                    )
+                    for k, v in values
+                ])
+
+        pair_sets = [sorted(pairs, key=lambda x: x[0]) for pairs in pair_sets]
 
         configs = [
             make_dict_from_pairs(f"{_slash(scope_prefix)}{key_prefix}", pairs, "/")
@@ -432,12 +438,16 @@ class AsyncEtcd:
         async with self.etcd.connect() as communicator:
             result = await communicator.txn(
                 EtcdTransactionAction()
-                .when(
-                    [
-                        Compare.value(mangled_key.encode(self.encoding), CompareOp.EQUAL, initial_val.encode(self.encoding)),
-                    ]
-                )
-                .and_then([TxnOp.put(mangled_key.encode(self.encoding), new_val.encode(self.encoding))])
+                .when([
+                    Compare.value(
+                        mangled_key.encode(self.encoding),
+                        CompareOp.EQUAL,
+                        initial_val.encode(self.encoding),
+                    ),
+                ])
+                .and_then([
+                    TxnOp.put(mangled_key.encode(self.encoding), new_val.encode(self.encoding))
+                ])
                 .or_else([])
             )
 
@@ -467,9 +477,11 @@ class AsyncEtcd:
             actions = []
             for k in keys:
                 actions.append(
-                    TxnOp.delete(self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding))
+                    TxnOp.delete(
+                        self._mangle_key(f"{_slash(scope_prefix)}{k}").encode(self.encoding)
+                    )
                 )
-            communicator.txn(EtcdTransactionAction().and_then(actions).or_else([]))
+            await communicator.txn(EtcdTransactionAction().and_then(actions).or_else([]))
 
     async def delete_prefix(
         self,
@@ -485,7 +497,7 @@ class AsyncEtcd:
 
     async def _watch_impl(
         self,
-        iterator_factory: Callable[[EtcdCommunicator], AsyncIterator[WatchEvent]],
+        iterator_factory: Callable[[EtcdCommunicator], Watch],
         scope_prefix_len: int,
         once: bool,
         cleanup_event: Optional[CondVar] = None,
@@ -494,20 +506,23 @@ class AsyncEtcd:
         try:
             async with self.etcd.connect() as communicator:
                 iterator = iterator_factory(communicator)
+
                 async for ev in iterator:
                     if wait_timeout is not None:
                         try:
-                            ev = await asyncio.wait_for(
-                                iterator.__anext__(), wait_timeout
-                            )
+                            ev = await asyncio.wait_for(iterator.__anext__(), wait_timeout)
                         except asyncio.TimeoutError:
                             pass
-                    yield Event(bytes(ev.key).decode(self.encoding)[scope_prefix_len:], ev.event, bytes(ev.value).decode(self.encoding))
+                    yield Event(
+                        bytes(ev.key).decode(self.encoding)[scope_prefix_len:],
+                        ev.event,
+                        bytes(ev.value).decode(self.encoding),
+                    )
                     if once:
                         return
         finally:
             if cleanup_event:
-                cleanup_event.notify_waiters()
+                await cleanup_event.notify_waiters()
 
     async def watch(
         self,
@@ -543,9 +558,7 @@ class AsyncEtcd:
                 err_detail = e.args[0]
 
                 if err_detail["code"] == GRPCStatusCode.Unavailable:
-                    log.warn(
-                        "watch(): error while connecting to Etcd server, retrying..."
-                    )
+                    log.warning("watch(): error while connecting to Etcd server, retrying...")
                     await asyncio.sleep(self.watch_reconnect_intvl)
                     ended_without_error = False
                 else:
@@ -585,7 +598,7 @@ class AsyncEtcd:
                 err_detail = e.args[0]
 
                 if err_detail["code"] == GRPCStatusCode.Unavailable:
-                    log.warn(
+                    log.warning(
                         "watch_prefix(): error while connecting to Etcd server, retrying..."
                     )
                     await asyncio.sleep(self.watch_reconnect_intvl)
