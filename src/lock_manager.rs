@@ -6,7 +6,7 @@ use crate::{
 use etcd_client::{Client as EtcdClient, LockOptions};
 
 use pyo3::{prelude::*, types::PyBytes};
-use std::time::Duration;
+use std::{future::ready, time::Duration};
 use tokio::time::{sleep, timeout};
 
 #[derive(Debug, Clone)]
@@ -60,6 +60,20 @@ impl EtcdLockManager {
         }
     }
 
+    async fn try_lock(&mut self, client: &mut EtcdClient) -> Result<(), PyClientError> {
+        let lock_req_options = self
+            .lease_id
+            .map(|lease_id| LockOptions::new().with_lease(lease_id));
+
+        let lock_res = client
+            .lock(self.lock_name.clone(), lock_req_options)
+            .await
+            .map_err(PyClientError)?;
+
+        self.lock_id = Some(lock_res.key().to_vec());
+        Ok(())
+    }
+
     pub async fn handle_aenter(&mut self) -> PyResult<PyCommunicator> {
         let client = self.client.clone();
         let mut client = EtcdClient::connect(client.endpoints, Some(client.connect_options.0))
@@ -91,23 +105,12 @@ impl EtcdLockManager {
         };
 
         let timeout_result: Result<Result<(), PyClientError>, tokio::time::error::Elapsed> =
-            timeout(
-                Duration::from_secs_f64(self.timeout_seconds.unwrap()),
-                async {
-                    let lock_req_options = self
-                        .lease_id
-                        .map(|lease_id| LockOptions::new().with_lease(lease_id));
-
-                    let lock_res = client
-                        .lock(self.lock_name.clone(), lock_req_options)
-                        .await
-                        .map_err(PyClientError)?;
-
-                    self.lock_id = Some(lock_res.key().to_vec());
-                    Ok(())
-                },
-            )
-            .await;
+            match self.timeout_seconds {
+                Some(seconds) => {
+                    timeout(Duration::from_secs_f64(seconds), self.try_lock(&mut client)).await
+                }
+                None => ready(Ok(self.try_lock(&mut client).await)).await,
+            };
 
         match timeout_result {
             Ok(Ok(_)) => {}
