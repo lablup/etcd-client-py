@@ -1,16 +1,6 @@
 """
 Backend.AI AsyncEtcd Client Copy
 Ref: https://github.com/lablup/backend.ai/blob/main/src/ai/backend/common/etcd.py
-=================================================================================
-"""
-
-"""
-An asynchronous client wrapper for etcd v3 API.
-
-It uses the etcd3 library using a thread pool executor.
-We plan to migrate to aioetcd3 library but it requires more work to get maturity.
-Fortunately, etcd3's watchers are not blocking because they are implemented
-using callbacks in separate threads.
 """
 
 import asyncio
