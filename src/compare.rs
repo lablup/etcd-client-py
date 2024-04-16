@@ -20,10 +20,10 @@ impl PyCompareOp {
 
     pub fn __repr__(&self) -> String {
         match self.0 {
-            CompareOp::Equal => "EQUAL".to_owned(),
-            CompareOp::Greater => "GREATER".to_owned(),
-            CompareOp::Less => "LESS".to_owned(),
-            CompareOp::NotEqual => "NOT_EQUAL".to_owned(),
+            CompareOp::Equal => "CompareOp.EQUAL".to_owned(),
+            CompareOp::Greater => "CompareOp.GREATER".to_owned(),
+            CompareOp::Less => "CompareOp.LESS".to_owned(),
+            CompareOp::NotEqual => "CompareOp.NOT_EQUAL".to_owned(),
         }
     }
 

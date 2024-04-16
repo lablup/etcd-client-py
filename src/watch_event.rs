@@ -77,8 +77,8 @@ impl PyWatchEventType {
 
     pub fn __repr__(&self) -> String {
         match self.0 {
-            EtcdClientEventType::Put => "PUT".to_string(),
-            EtcdClientEventType::Delete => "DELETE".to_string(),
+            EtcdClientEventType::Put => "WatchEventType.PUT".to_string(),
+            EtcdClientEventType::Delete => "WatchEventType.DELETE".to_string(),
         }
     }
 
