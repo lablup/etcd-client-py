@@ -112,6 +112,10 @@ impl EtcdLockManager {
                 None => ready(Ok(self.try_lock(&mut client).await)).await,
             };
 
+        if let Some(ref lease_keepalive_task) = self.lease_keepalive_task {
+            lease_keepalive_task.abort();
+        }
+
         match timeout_result {
             Ok(Ok(_)) => {}
             Ok(Err(e)) => return Err(e.into()),
@@ -127,10 +131,6 @@ impl EtcdLockManager {
                 }
                 return Err(LockError::new_err(timedout_err.to_string()));
             }
-        }
-
-        if let Some(ref lease_keepalive_task) = self.lease_keepalive_task {
-            lease_keepalive_task.abort();
         }
 
         Ok(PyCommunicator::new(client))
