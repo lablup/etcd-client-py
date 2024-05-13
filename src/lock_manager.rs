@@ -142,27 +142,32 @@ impl EtcdLockManager {
             .await
             .map_err(PyClientError)?;
 
-        if self.lock_id.is_none() {
-            return Err(LockError::new_err(
-                "Attempting to release EtcdLock before it has been acquired!".to_string(),
-            ));
-        }
+        match self.lock_id {
+            None => {
+                return Err(LockError::new_err(
+                    "Attempting to release EtcdLock before it has been acquired!".to_string(),
+                ));
+            }
+            Some(ref lock_id) => {
+                if let Some(ref lease_keepalive_task) = self.lease_keepalive_task {
+                    lease_keepalive_task.abort();
+                }
 
-        if let Some(ref lease_keepalive_task) = self.lease_keepalive_task {
-            lease_keepalive_task.abort();
-        }
-
-        if let Some(lease_id) = self.lease_id {
-            client.lease_revoke(lease_id).await.map_err(PyClientError)?;
-        } else {
-            client
-                .unlock(
-                    self.lock_id
-                        .to_owned()
-                        .expect("Failed to unlock due to lock_id is None"),
-                )
-                .await
-                .map_err(PyClientError)?;
+                if let Some(lease_id) = self.lease_id {
+                    if let Err(etcd_client::Error::GRpcStatus(status)) =
+                        client.lease_revoke(lease_id).await
+                    {
+                        if status.code() != tonic::Code::NotFound {
+                            return Err(GRPCStatusError::new_err(status.to_string()));
+                        }
+                    }
+                } else {
+                    client
+                        .unlock(lock_id.to_owned())
+                        .await
+                        .map_err(PyClientError)?;
+                }
+            }
         }
 
         self.lock_id = None;
