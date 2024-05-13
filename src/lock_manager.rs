@@ -6,6 +6,7 @@ use crate::{
 use etcd_client::{Client as EtcdClient, LockOptions};
 
 use pyo3::{prelude::*, types::PyBytes};
+use scopeguard::defer;
 use std::{future::ready, time::Duration};
 use tokio::time::{sleep, timeout};
 
@@ -112,13 +113,9 @@ impl EtcdLockManager {
                 None => ready(Ok(self.try_lock(&mut client).await)).await,
             };
 
-        if let Some(ref lease_keepalive_task) = self.lease_keepalive_task {
-            lease_keepalive_task.abort();
-        }
-
         match timeout_result {
             Ok(Ok(_)) => {}
-            Ok(Err(e)) => return Err(e.into()),
+            Ok(Err(try_lock_err)) => return Err(try_lock_err.into()),
             Err(timedout_err) => {
                 if let Some(lease_id) = self.lease_id {
                     if let Err(etcd_client::Error::GRpcStatus(status)) =
@@ -130,6 +127,12 @@ impl EtcdLockManager {
                     }
                 }
                 return Err(LockError::new_err(timedout_err.to_string()));
+            }
+        }
+
+        defer! {
+            if let Some(ref lease_keepalive_task) = self.lease_keepalive_task {
+                lease_keepalive_task.abort();
             }
         }
 
