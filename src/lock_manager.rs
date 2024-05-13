@@ -117,19 +117,15 @@ impl EtcdLockManager {
             Ok(Err(e)) => return Err(e.into()),
             Err(timedout_err) => {
                 if let Some(lease_id) = self.lease_id {
-                    match client.lease_revoke(lease_id).await {
-                        Ok(_lease_revoke_res) => {}
-                        Err(e) => match e {
-                            etcd_client::Error::GRpcStatus(status)
-                                if status.code() != tonic::Code::NotFound =>
-                            {
-                                return Err(GRPCStatusError::new_err(status.to_string()))
-                            }
-                            _ => return Err(PyClientError(e).into()),
-                        },
+                    if let Err(etcd_client::Error::GRpcStatus(status)) =
+                        client.lease_revoke(lease_id).await
+                    {
+                        if status.code() != tonic::Code::NotFound {
+                            return Err(GRPCStatusError::new_err(status.to_string()));
+                        }
                     }
-                    return Err(LockError::new_err(timedout_err.to_string()));
                 }
+                return Err(LockError::new_err(timedout_err.to_string()));
             }
         }
 
