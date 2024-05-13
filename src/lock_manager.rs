@@ -94,7 +94,7 @@ impl EtcdLockManager {
                         .map_err(PyClientError)?;
 
                     loop {
-                        sleep(Duration::from_secs((ttl / 10) as u64)).await;
+                        sleep(Duration::from_secs_f64((ttl as f64) / 10.0)).await;
                         lease_keeper.keep_alive().await.map_err(PyClientError)?;
                     }
                 }));
