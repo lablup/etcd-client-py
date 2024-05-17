@@ -6,7 +6,6 @@ use crate::{
 use etcd_client::{Client as EtcdClient, LockOptions};
 
 use pyo3::{prelude::*, types::PyBytes};
-use scopeguard::defer;
 use std::{future::ready, time::Duration};
 use tokio::time::{sleep, timeout};
 
