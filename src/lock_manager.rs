@@ -124,8 +124,8 @@ impl EtcdLockManager {
             };
 
         match timeout_result {
-            Ok(Ok(_)) => {}
-            Ok(Err(try_lock_err)) => return Err(try_lock_err.into()),
+            Ok(Ok(_)) => Ok(PyCommunicator::new(client)),
+            Ok(Err(try_lock_err)) => Err(try_lock_err.into()),
             Err(timedout_err) => {
                 if let Some(lease_id) = self_.lease_id {
                     if let Err(etcd_client::Error::GRpcStatus(status)) =
@@ -136,11 +136,9 @@ impl EtcdLockManager {
                         }
                     }
                 }
-                return Err(LockError::new_err(timedout_err.to_string()));
+                Err(LockError::new_err(timedout_err.to_string()))
             }
         }
-
-        return Ok(PyCommunicator::new(client));
     }
 
     pub async fn handle_aexit(&mut self) -> PyResult<()> {
