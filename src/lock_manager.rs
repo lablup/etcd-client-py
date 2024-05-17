@@ -81,14 +81,20 @@ impl EtcdLockManager {
             .await
             .map_err(PyClientError)?;
 
-        self.lease_id = match self.ttl {
+        let mut self_ = scopeguard::guard(self, |self_| {
+            if let Some(ref lease_keepalive_task) = self_.lease_keepalive_task {
+                lease_keepalive_task.abort();
+            }
+        });
+
+        self_.lease_id = match self_.ttl {
             Some(ttl) => {
                 let lease_grant_res = client.lease_grant(ttl, None).await.map_err(PyClientError)?;
                 let lease_id = lease_grant_res.id();
 
                 let mut client_to_move = client.clone();
 
-                self.lease_keepalive_task = Some(tokio::spawn(async move {
+                self_.lease_keepalive_task = Some(tokio::spawn(async move {
                     let (mut lease_keeper, _lease_stream) = client_to_move
                         .lease_keep_alive(lease_id)
                         .await
@@ -106,18 +112,22 @@ impl EtcdLockManager {
         };
 
         let timeout_result: Result<Result<(), PyClientError>, tokio::time::error::Elapsed> =
-            match self.timeout_seconds {
+            match self_.timeout_seconds {
                 Some(seconds) => {
-                    timeout(Duration::from_secs_f64(seconds), self.try_lock(&mut client)).await
+                    timeout(
+                        Duration::from_secs_f64(seconds),
+                        self_.try_lock(&mut client),
+                    )
+                    .await
                 }
-                None => ready(Ok(self.try_lock(&mut client).await)).await,
+                None => ready(Ok(self_.try_lock(&mut client).await)).await,
             };
 
         match timeout_result {
             Ok(Ok(_)) => {}
             Ok(Err(try_lock_err)) => return Err(try_lock_err.into()),
             Err(timedout_err) => {
-                if let Some(lease_id) = self.lease_id {
+                if let Some(lease_id) = self_.lease_id {
                     if let Err(etcd_client::Error::GRpcStatus(status)) =
                         client.lease_revoke(lease_id).await
                     {
@@ -130,13 +140,7 @@ impl EtcdLockManager {
             }
         }
 
-        defer! {
-            if let Some(ref lease_keepalive_task) = self.lease_keepalive_task {
-                lease_keepalive_task.abort();
-            }
-        }
-
-        Ok(PyCommunicator::new(client))
+        return Ok(PyCommunicator::new(client));
     }
 
     pub async fn handle_aexit(&mut self) -> PyResult<()> {
