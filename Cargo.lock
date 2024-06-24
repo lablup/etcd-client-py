@@ -215,6 +215,7 @@ dependencies = [
  "etcd-client",
  "pyo3",
  "pyo3-asyncio",
+ "scopeguard",
  "tokio",
  "tokio-stream",
  "tonic",
