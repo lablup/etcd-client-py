@@ -54,6 +54,7 @@ jobs:
 
   release-linux:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: test
     strategy:
       fail-fast: false
       matrix:
@@ -89,6 +90,7 @@ jobs:
 
   release-macos:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: test
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -113,6 +115,7 @@ jobs:
 
   release-source:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the revision
@@ -133,7 +136,7 @@ jobs:
           path: dist
 
   publish-to-pypi:
-    needs: [release-linux-x86_64, release-linux-aarch64, release-macos, release-source]
+    needs: [release-linux, release-macos, release-source]
     environment: deploy-to-pypi
     permissions:
       id-token: write
