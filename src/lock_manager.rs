@@ -5,7 +5,7 @@ use crate::{
 };
 use etcd_client::{Client as EtcdClient, LockOptions};
 
-use pyo3::{prelude::*, types::PyBytes};
+use pyo3::prelude::*;
 use std::{future::ready, time::Duration};
 use tokio::time::{sleep, timeout};
 
@@ -20,8 +20,7 @@ pub struct PyEtcdLockOption {
 #[pymethods]
 impl PyEtcdLockOption {
     #[new]
-    fn new(lock_name: &PyBytes, timeout: Option<f64>, ttl: Option<i64>) -> Self {
-        let lock_name = lock_name.as_bytes().to_vec();
+    fn new(lock_name: Vec<u8>, timeout: Option<f64>, ttl: Option<i64>) -> Self {
         Self {
             lock_name,
             timeout,

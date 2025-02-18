@@ -113,7 +113,7 @@ impl PyClient {
         result
     }
 
-    fn __aenter__<'a>(&'a mut self, py: Python<'a>) -> PyResult<&'a PyAny> {
+    fn __aenter__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         let endpoints = self.endpoints.clone();
         let connect_options = self.connect_options.clone();
         let lock_options = self.lock_options.clone();
@@ -144,7 +144,7 @@ impl PyClient {
     }
 
     #[pyo3(signature = (*_args))]
-    fn __aexit__<'a>(&'a self, py: Python<'a>, _args: &PyTuple) -> PyResult<&'a PyAny> {
+    fn __aexit__<'a>(&'a self, py: Python<'a>, _args: &Bound<'a, PyTuple>) -> PyResult<Bound<'a, PyAny>> {
         let lock_options = self.lock_options.clone();
 
         let lock_manager = if lock_options.is_some() {
