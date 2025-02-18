@@ -1,7 +1,7 @@
 use etcd_client::{Client as EtcdClient, ConnectOptions};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3_asyncio::tokio::future_into_py;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;

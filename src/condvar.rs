@@ -1,5 +1,5 @@
 use pyo3::{pyclass, *};
-use pyo3_asyncio::tokio::future_into_py;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::{Mutex, Notify};
 

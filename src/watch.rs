@@ -3,7 +3,7 @@ use etcd_client::WatchOptions;
 use etcd_client::Watcher;
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
-use pyo3_asyncio::tokio::future_into_py;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::sync::Notify;

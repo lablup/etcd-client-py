@@ -2,7 +2,7 @@ use etcd_client::Client as EtcdClient;
 use etcd_client::{DeleteOptions, GetOptions, WatchOptions};
 use pyo3::prelude::*;
 use pyo3::types::PyBytes;
-use pyo3_asyncio::tokio::future_into_py;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
