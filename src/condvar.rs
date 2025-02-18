@@ -1,5 +1,5 @@
 use pyo3::{pyclass, *};
-use pyo3_asyncio::tokio::future_into_py;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::{Mutex, Notify};
 
@@ -20,7 +20,7 @@ impl PyCondVar {
         }
     }
 
-    pub fn wait<'a>(&'a self, py: Python<'a>) -> PyResult<&'a PyAny> {
+    pub fn wait<'a>(&'a self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         let condition = self.condition.clone();
         future_into_py(py, async move {
@@ -31,7 +31,7 @@ impl PyCondVar {
         })
     }
 
-    pub fn notify_waiters<'a>(&'a self, py: Python<'a>) -> PyResult<&'a PyAny> {
+    pub fn notify_waiters<'a>(&'a self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         let condition = self.condition.clone();
         future_into_py(py, async move {

@@ -1,4 +1,4 @@
-use pyo3::{create_exception, exceptions::PyException, types::PyDict, PyErr, Python, *};
+use pyo3::{create_exception, exceptions::PyException, types::{PyDict, PyDictMethods}, PyErr, Python, *};
 use std::fmt::Debug;
 
 create_exception!(etcd_client, ClientError, PyException);
@@ -15,7 +15,8 @@ create_exception!(etcd_client, InvalidHeaderValueError, ClientError);
 create_exception!(etcd_client, EndpointError, ClientError);
 create_exception!(etcd_client, LockError, ClientError);
 
-#[pyclass(name = "GRPCStatusCode")]
+#[pyclass(name = "GRPCStatusCode", eq, eq_int)]
+#[derive(PartialEq)]
 pub enum PyGRPCStatusCode {
     Ok = 0,
     Cancelled = 1,
@@ -53,7 +54,7 @@ impl From<PyClientError> for PyErr {
                     .set_item("message", e.message().to_owned())
                     .unwrap();
 
-                let kv_args: PyObject = error_details.into_py(py);
+                let kv_args: PyObject = error_details.into();
                 GRPCStatusError::new_err(kv_args)
             }),
             etcd_client::Error::InvalidArgs(e) => {

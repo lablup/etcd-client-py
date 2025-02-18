@@ -2,6 +2,7 @@ use etcd_client::Event as EtcdClientEvent;
 use etcd_client::EventType as EtcdClientEventType;
 use pyo3::prelude::*;
 use pyo3::pyclass::CompareOp;
+use pyo3::BoundObject;
 
 // Note: Event = namedtuple("Event", "key event value"), not asyncio.Event, threading.Event
 #[pyclass(get_all, name = "WatchEvent")]
@@ -38,11 +39,19 @@ impl PyWatchEvent {
         )
     }
 
-    fn __richcmp__(&self, py: Python, other: &Self, op: CompareOp) -> PyObject {
+    fn __richcmp__(&self, py: Python, other: &Self, op: CompareOp) -> PyResult<PyObject> {
         match op {
-            CompareOp::Eq => (self == other).into_py(py),
-            CompareOp::Ne => (self != other).into_py(py),
-            _ => py.NotImplemented(),
+            CompareOp::Eq => (self == other)
+                .into_pyobject(py)
+                .map_err(Into::into)
+                .map(BoundObject::into_any)
+                .map(BoundObject::unbind),
+            CompareOp::Ne => (self != other)
+                .into_pyobject(py)
+                .map_err(Into::into)
+                .map(BoundObject::into_any)
+                .map(BoundObject::unbind),
+            _ => Ok(py.NotImplemented()),
         }
     }
 }
@@ -82,11 +91,19 @@ impl PyWatchEventType {
         }
     }
 
-    pub fn __richcmp__(&self, py: Python, rhs: &PyWatchEventType, op: CompareOp) -> PyObject {
+    pub fn __richcmp__(&self, py: Python, rhs: &PyWatchEventType, op: CompareOp) -> PyResult<PyObject> {
         match op {
-            CompareOp::Eq => (self.0 == rhs.0).into_py(py),
-            CompareOp::Ne => (self.0 != rhs.0).into_py(py),
-            _ => py.NotImplemented(),
+            CompareOp::Eq => (self.0 == rhs.0)
+                .into_pyobject(py)
+                .map_err(Into::into)
+                .map(BoundObject::into_any)
+                .map(BoundObject::unbind),
+            CompareOp::Ne => (self.0 != rhs.0)
+                .into_pyobject(py)
+                .map_err(Into::into)
+                .map(BoundObject::into_any)
+                .map(BoundObject::unbind),
+            _ => Ok(py.NotImplemented()),
         }
     }
 }

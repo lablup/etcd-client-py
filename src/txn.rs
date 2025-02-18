@@ -1,5 +1,5 @@
 use etcd_client::{DeleteOptions, GetOptions, PutOptions, Txn, TxnOp};
-use pyo3::{prelude::*, types::PyBytes};
+use pyo3::prelude::*;
 
 use crate::compare::PyCompare;
 
@@ -10,23 +10,19 @@ pub struct PyTxnOp(pub TxnOp);
 #[pymethods]
 impl PyTxnOp {
     #[staticmethod]
-    fn get(key: &PyBytes) -> PyResult<Self> {
-        let key = key.as_bytes().to_vec();
+    fn get(key: Vec<u8>) -> PyResult<Self> {
         let options = GetOptions::new();
         Ok(PyTxnOp(TxnOp::get(key, Some(options))))
     }
 
     #[staticmethod]
-    fn put(key: &PyBytes, value: &PyBytes) -> PyResult<Self> {
-        let key = key.as_bytes().to_vec();
-        let value = value.as_bytes().to_vec();
+    fn put(key: Vec<u8>, value: Vec<u8>) -> PyResult<Self> {
         let options = PutOptions::new();
         Ok(PyTxnOp(TxnOp::put(key, value, Some(options))))
     }
 
     #[staticmethod]
-    fn delete(key: &PyBytes) -> PyResult<Self> {
-        let key = key.as_bytes().to_vec();
+    fn delete(key: Vec<u8>) -> PyResult<Self> {
         let options = DeleteOptions::new();
         Ok(PyTxnOp(TxnOp::delete(key, Some(options))))
     }

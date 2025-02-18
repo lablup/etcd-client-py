@@ -1,8 +1,7 @@
 use etcd_client::Client as EtcdClient;
 use etcd_client::{DeleteOptions, GetOptions, WatchOptions};
 use pyo3::prelude::*;
-use pyo3::types::PyBytes;
-use pyo3_asyncio::tokio::future_into_py;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -18,9 +17,9 @@ pub struct PyCommunicator(pub Arc<Mutex<EtcdClient>>);
 #[pymethods]
 impl PyCommunicator {
     // TODO: Implement and use the CRUD response types
-    fn get<'a>(&'a self, py: Python<'a>, key: &PyBytes) -> PyResult<&'a PyAny> {
+
+    fn get<'a>(&'a self, py: Python<'a>, key: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let key = key.as_bytes().to_vec();
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.get(key, None).await;
@@ -37,10 +36,8 @@ impl PyCommunicator {
         })
     }
 
-    fn get_prefix<'a>(&'a self, py: Python<'a>, prefix: &PyBytes) -> PyResult<&'a PyAny> {
+    fn get_prefix<'a>(&'a self, py: Python<'a>, prefix: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let prefix = prefix.as_bytes().to_vec();
-
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let options = GetOptions::new().with_prefix();
@@ -58,11 +55,8 @@ impl PyCommunicator {
         })
     }
 
-    fn put<'a>(&'a self, py: Python<'a>, key: &PyBytes, value: &PyBytes) -> PyResult<&'a PyAny> {
+    fn put<'a>(&'a self, py: Python<'a>, key: Vec<u8>, value: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let key = key.as_bytes().to_vec();
-        let value = value.as_bytes().to_vec();
-
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.put(key, value, None).await;
@@ -70,22 +64,17 @@ impl PyCommunicator {
         })
     }
 
-    fn delete<'a>(&'a self, py: Python<'a>, key: &PyBytes) -> PyResult<&'a PyAny> {
+    fn delete<'a>(&'a self, py: Python<'a>, key: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let key = key.as_bytes().to_vec();
-
         future_into_py(py, async move {
             let mut client = client.lock().await;
-
             let result = client.delete(key, None).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
         })
     }
 
-    fn delete_prefix<'a>(&'a self, py: Python<'a>, key: &PyBytes) -> PyResult<&'a PyAny> {
+    fn delete_prefix<'a>(&'a self, py: Python<'a>, key: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let key = key.as_bytes().to_vec();
-
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let options = DeleteOptions::new().with_prefix();
@@ -94,9 +83,8 @@ impl PyCommunicator {
         })
     }
 
-    fn txn<'a>(&'a self, py: Python<'a>, txn: PyTxn) -> PyResult<&'a PyAny> {
+    fn txn<'a>(&'a self, py: Python<'a>, txn: PyTxn) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.txn(txn.0).await;
@@ -106,10 +94,8 @@ impl PyCommunicator {
         })
     }
 
-    fn keys_prefix<'a>(&'a self, py: Python<'a>, key: &PyBytes) -> PyResult<&'a PyAny> {
+    fn keys_prefix<'a>(&'a self, py: Python<'a>, key: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let key = key.as_bytes().to_vec();
-
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let options = GetOptions::new().with_prefix();
@@ -127,10 +113,8 @@ impl PyCommunicator {
         })
     }
 
-    fn lock<'a>(&'a self, py: Python<'a>, name: &PyBytes) -> PyResult<&'a PyAny> {
+    fn lock<'a>(&'a self, py: Python<'a>, name: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let name = name.as_bytes().to_vec();
-
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.lock(name, None).await;
@@ -138,10 +122,8 @@ impl PyCommunicator {
         })
     }
 
-    fn unlock<'a>(&'a self, py: Python<'a>, name: &PyBytes) -> PyResult<&'a PyAny> {
+    fn unlock<'a>(&'a self, py: Python<'a>, name: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let name = name.as_bytes().to_vec();
-
         future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.unlock(name).await;
@@ -150,7 +132,7 @@ impl PyCommunicator {
     }
 
     // TODO: Implement and use the response types of `lease` type's methods
-    fn lease_grant<'a>(&'a self, py: Python<'a>, ttl: i64) -> PyResult<&'a PyAny> {
+    fn lease_grant<'a>(&'a self, py: Python<'a>, ttl: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -159,7 +141,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_revoke<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
+    fn lease_revoke<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -168,7 +150,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_time_to_live<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
+    fn lease_time_to_live<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -177,7 +159,7 @@ impl PyCommunicator {
         })
     }
 
-    fn lease_keep_alive<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<&'a PyAny> {
+    fn lease_keep_alive<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
@@ -186,28 +168,28 @@ impl PyCommunicator {
         })
     }
 
+    #[pyo3(signature = (key, once=None, ready_event=None, cleanup_event=None))]
     fn watch(
         &self,
-        key: &PyBytes,
+        key: Vec<u8>,
         once: Option<bool>,
         ready_event: Option<PyCondVar>,
         cleanup_event: Option<PyCondVar>,
     ) -> PyWatch {
         let client = self.0.clone();
-        let key = key.as_bytes().to_vec();
         let once = once.unwrap_or(false);
         PyWatch::new(client, key, once, None, ready_event, cleanup_event)
     }
 
+    #[pyo3(signature = (key, once=None, ready_event=None, cleanup_event=None))]
     fn watch_prefix(
         &self,
-        key: &PyBytes,
+        key: Vec<u8>,
         once: Option<bool>,
         ready_event: Option<PyCondVar>,
         cleanup_event: Option<PyCondVar>,
     ) -> PyWatch {
         let client = self.0.clone();
-        let key = key.as_bytes().to_vec();
         let once = once.unwrap_or(false);
         let options = WatchOptions::new().with_prefix();
         PyWatch::new(client, key, once, Some(options), ready_event, cleanup_event)

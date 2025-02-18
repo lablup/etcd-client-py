@@ -10,57 +10,66 @@ mod watch;
 mod watch_event;
 mod watch_event_stream;
 
-use client::{PyClient, PyConnectOptions};
-use communicator::PyCommunicator;
-use compare::{PyCompare, PyCompareOp};
-use condvar::PyCondVar;
-use error::{
-    ClientError, ElectError, EndpointError, GRPCStatusError, InvalidArgsError,
-    InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError, PyGRPCStatusCode,
-    TransportError, Utf8Error, WatchError,
-};
-use lock_manager::PyEtcdLockOption;
 use pyo3::prelude::*;
-use txn::{PyTxn, PyTxnOp};
-use txn_response::PyTxnResponse;
-use watch::PyWatch;
-use watch_event::{PyWatchEvent, PyWatchEventType};
 
 #[pymodule]
-fn etcd_client(py: Python, module: &PyModule) -> PyResult<()> {
-    module.add_class::<PyClient>()?;
-    module.add_class::<PyConnectOptions>()?;
-    module.add_class::<PyCommunicator>()?;
+mod etcd_client {
 
-    module.add_class::<PyWatch>()?;
-    module.add_class::<PyWatchEvent>()?;
-    module.add_class::<PyWatchEventType>()?;
+    use pyo3::prelude::*;
+    use crate::error::{
+        ClientError, ElectError, EndpointError, GRPCStatusError, InvalidArgsError,
+        InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError,
+        TransportError, Utf8Error, WatchError,
+    };
 
-    module.add_class::<PyCondVar>()?;
-    module.add_class::<PyCompare>()?;
-    module.add_class::<PyCompareOp>()?;
+    #[pymodule_export]
+    use crate::txn::{PyTxn, PyTxnOp};
 
-    module.add_class::<PyTxn>()?;
-    module.add_class::<PyTxnOp>()?;
-    module.add_class::<PyTxnResponse>()?;
-    module.add_class::<PyEtcdLockOption>()?;
+    #[pymodule_export]
+    use crate::txn_response::PyTxnResponse;
 
-    module.add_class::<PyGRPCStatusCode>()?;
+    #[pymodule_export]
+    use crate::lock_manager::PyEtcdLockOption;
 
-    module.add("ClientError", py.get_type::<ClientError>())?;
-    module.add("GRPCStatusError", py.get_type::<GRPCStatusError>())?;
-    module.add("InvalidArgsError", py.get_type::<InvalidArgsError>())?;
-    module.add("IoError", py.get_type::<IoError>())?;
-    module.add("InvalidUriError", py.get_type::<InvalidUriError>())?;
-    module.add("TransportError", py.get_type::<TransportError>())?;
-    module.add("WatchError", py.get_type::<WatchError>())?;
-    module.add("Utf8Error", py.get_type::<Utf8Error>())?;
-    module.add("LeaseKeepAliveError", py.get_type::<LeaseKeepAliveError>())?;
-    module.add("ElectError", py.get_type::<ElectError>())?;
-    module.add(
-        "InvalidHeaderValueError",
-        py.get_type::<InvalidHeaderValueError>(),
-    )?;
-    module.add("EndpointError", py.get_type::<EndpointError>())?;
-    Ok(())
+    #[pymodule_export]
+    use crate::client::{PyClient, PyConnectOptions};
+
+    #[pymodule_export]
+    use crate::communicator::PyCommunicator;
+
+    #[pymodule_export]
+    use crate::compare::{PyCompare, PyCompareOp};
+
+    #[pymodule_export]
+    use crate::condvar::PyCondVar;
+
+    #[pymodule_export]
+    use crate::watch::PyWatch;
+
+    #[pymodule_export]
+    use crate::watch_event::{PyWatchEvent, PyWatchEventType};
+
+    #[pymodule_export]
+    use crate::error::PyGRPCStatusCode;
+
+    #[pymodule_init]
+    fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
+        let py = m.py();
+        m.add("ClientError", py.get_type::<ClientError>())?;
+        m.add("GRPCStatusError", py.get_type::<GRPCStatusError>())?;
+        m.add("InvalidArgsError", py.get_type::<InvalidArgsError>())?;
+        m.add("IoError", py.get_type::<IoError>())?;
+        m.add("InvalidUriError", py.get_type::<InvalidUriError>())?;
+        m.add("TransportError", py.get_type::<TransportError>())?;
+        m.add("WatchError", py.get_type::<WatchError>())?;
+        m.add("Utf8Error", py.get_type::<Utf8Error>())?;
+        m.add("LeaseKeepAliveError", py.get_type::<LeaseKeepAliveError>())?;
+        m.add("ElectError", py.get_type::<ElectError>())?;
+        m.add(
+            "InvalidHeaderValueError",
+            py.get_type::<InvalidHeaderValueError>(),
+        )?;
+        m.add("EndpointError", py.get_type::<EndpointError>())?;
+        Ok(())
+    }
 }

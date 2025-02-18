@@ -1,7 +1,7 @@
 use etcd_client::{Client as EtcdClient, ConnectOptions};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
-use pyo3_asyncio::tokio::future_into_py;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -75,6 +75,7 @@ pub struct PyClient {
 #[pymethods]
 impl PyClient {
     #[new]
+    #[pyo3(signature = (endpoints, connect_options=None, lock_options=None))]
     fn new(
         endpoints: Vec<String>,
         connect_options: Option<PyConnectOptions>,
@@ -96,12 +97,14 @@ impl PyClient {
         )
     }
 
+    #[pyo3(signature = (connect_options=None))]
     pub fn connect(&self, connect_options: Option<PyConnectOptions>) -> Self {
         let mut result = self.clone();
         result.connect_options = connect_options.unwrap_or(self.connect_options.clone());
         result
     }
 
+    #[pyo3(signature = (lock_options, connect_options=None))]
     pub fn with_lock(
         &self,
         lock_options: PyEtcdLockOption,
@@ -113,7 +116,7 @@ impl PyClient {
         result
     }
 
-    fn __aenter__<'a>(&'a mut self, py: Python<'a>) -> PyResult<&'a PyAny> {
+    fn __aenter__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         let endpoints = self.endpoints.clone();
         let connect_options = self.connect_options.clone();
         let lock_options = self.lock_options.clone();
@@ -144,7 +147,7 @@ impl PyClient {
     }
 
     #[pyo3(signature = (*_args))]
-    fn __aexit__<'a>(&'a self, py: Python<'a>, _args: &PyTuple) -> PyResult<&'a PyAny> {
+    fn __aexit__<'a>(&'a self, py: Python<'a>, _args: &Bound<'a, PyTuple>) -> PyResult<Bound<'a, PyAny>> {
         let lock_options = self.lock_options.clone();
 
         let lock_manager = if lock_options.is_some() {
