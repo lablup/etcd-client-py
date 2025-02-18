@@ -168,6 +168,7 @@ impl PyCommunicator {
         })
     }
 
+    #[pyo3(signature = (key, once=None, ready_event=None, cleanup_event=None))]
     fn watch(
         &self,
         key: Vec<u8>,
@@ -180,6 +181,7 @@ impl PyCommunicator {
         PyWatch::new(client, key, once, None, ready_event, cleanup_event)
     }
 
+    #[pyo3(signature = (key, once=None, ready_event=None, cleanup_event=None))]
     fn watch_prefix(
         &self,
         key: Vec<u8>,

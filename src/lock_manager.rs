@@ -20,6 +20,7 @@ pub struct PyEtcdLockOption {
 #[pymethods]
 impl PyEtcdLockOption {
     #[new]
+    #[pyo3(signature = (lock_name, timeout=None, ttl=None))]
     fn new(lock_name: Vec<u8>, timeout: Option<f64>, ttl: Option<i64>) -> Self {
         Self {
             lock_name,

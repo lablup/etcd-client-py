@@ -15,7 +15,8 @@ create_exception!(etcd_client, InvalidHeaderValueError, ClientError);
 create_exception!(etcd_client, EndpointError, ClientError);
 create_exception!(etcd_client, LockError, ClientError);
 
-#[pyclass(name = "GRPCStatusCode")]
+#[pyclass(name = "GRPCStatusCode", eq, eq_int)]
+#[derive(PartialEq)]
 pub enum PyGRPCStatusCode {
     Ok = 0,
     Cancelled = 1,

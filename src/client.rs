@@ -75,6 +75,7 @@ pub struct PyClient {
 #[pymethods]
 impl PyClient {
     #[new]
+    #[pyo3(signature = (endpoints, connect_options=None, lock_options=None))]
     fn new(
         endpoints: Vec<String>,
         connect_options: Option<PyConnectOptions>,
@@ -96,12 +97,14 @@ impl PyClient {
         )
     }
 
+    #[pyo3(signature = (connect_options=None))]
     pub fn connect(&self, connect_options: Option<PyConnectOptions>) -> Self {
         let mut result = self.clone();
         result.connect_options = connect_options.unwrap_or(self.connect_options.clone());
         result
     }
 
+    #[pyo3(signature = (lock_options, connect_options=None))]
     pub fn with_lock(
         &self,
         lock_options: PyEtcdLockOption,
