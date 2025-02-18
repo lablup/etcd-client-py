@@ -31,11 +31,11 @@ jobs:
         tar -xzf etcd-v3.5.18-linux-${{ matrix.platform.etcd_arch }}.tar.gz
         mv etcd-v3.5.18-linux-${{ matrix.platform.etcd_arch }}/etcd* /usr/local/bin/
     - name: Set up Python as Runtime
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Set up Rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: stable
         override: true
