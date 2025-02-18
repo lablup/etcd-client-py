@@ -18,7 +18,7 @@ jobs:
       matrix:
         platform: [
           {os: "ubuntu-22.04", arch: "x86_64", etcd_arch: "amd64"},
-          {os: "ubuntu-22.04-arm64", arch: "aarch64", etcd_arch: "arm64"},
+          {os: "ubuntu-22.04-arm", arch: "aarch64", etcd_arch: "arm64"},
         ]
         python-version: ["3.11", "3.12", "3.13"]
     runs-on: ${{ matrix.platform.os }}
@@ -60,7 +60,7 @@ jobs:
       matrix:
         platform: [
           {os: "ubuntu-22.04", arch: "x86_64", maturin_arch: "x86_64"},
-          {os: "ubuntu-22.04-arm64", arch: "aarch64", maturin_arch: "aarch_64"},
+          {os: "ubuntu-22.04-arm", arch: "aarch64", maturin_arch: "aarch_64"},
         ]
         manylinux: ["manylinux2014"]
         python-version: ["3.11", "3.12", "3.13"]
