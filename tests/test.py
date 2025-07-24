@@ -7,8 +7,6 @@ from tests.harness import AsyncEtcd, ConfigScopes
 
 @pytest.mark.asyncio
 async def test_basic_crud(etcd: AsyncEtcd) -> None:
-    etcd = await etcd
-
     await etcd.put("wow", "abc")
 
     v = await etcd.get("wow")
@@ -34,8 +32,6 @@ async def test_basic_crud(etcd: AsyncEtcd) -> None:
 
 @pytest.mark.asyncio
 async def test_quote_for_put_prefix(etcd: AsyncEtcd) -> None:
-    etcd = await etcd
-
     await etcd.put_prefix(
         "data",
         {
@@ -65,8 +61,6 @@ async def test_quote_for_put_prefix(etcd: AsyncEtcd) -> None:
 
 @pytest.mark.asyncio
 async def test_unquote_for_get_prefix(etcd: AsyncEtcd) -> None:
-    etcd = await etcd
-
     await etcd.put("obj/aa%3Abb/option1", "value1")
     await etcd.put("obj/aa%3Abb/option2", "value2")
     await etcd.put("obj/aa%3Abb/myhost%2Fpath", "this")
@@ -95,8 +89,6 @@ async def test_unquote_for_get_prefix(etcd: AsyncEtcd) -> None:
 
 @pytest.mark.asyncio
 async def test_scope_empty_prefix(gateway_etcd: AsyncEtcd) -> None:
-    gateway_etcd = await gateway_etcd
-
     # This test case is to ensure compatibility with the legacy managers.
     # gateway_etcd is created with a scope prefix map that contains
     # ConfigScopes.GLOBAL => ''
@@ -127,8 +119,6 @@ async def test_scope_empty_prefix(gateway_etcd: AsyncEtcd) -> None:
 
 @pytest.mark.asyncio
 async def test_scope(etcd: AsyncEtcd) -> None:
-    etcd = await etcd
-
     await etcd.put("wow", "abc", scope=ConfigScopes.GLOBAL)
     await etcd.put("wow", "def", scope=ConfigScopes.SGROUP)
     await etcd.put("wow", "ghi", scope=ConfigScopes.NODE)
@@ -154,8 +144,6 @@ async def test_scope(etcd: AsyncEtcd) -> None:
 
 @pytest.mark.asyncio
 async def test_scope_dict(etcd: AsyncEtcd) -> None:
-    etcd = await etcd
-
     await etcd.put_dict({"point/x": "1", "point/y": "2"}, scope=ConfigScopes.GLOBAL)
     await etcd.put_dict({"point/y": "3"}, scope=ConfigScopes.SGROUP)
     await etcd.put_dict({"point/x": "4", "point/z": "5"}, scope=ConfigScopes.NODE)
@@ -181,8 +169,6 @@ async def test_scope_dict(etcd: AsyncEtcd) -> None:
 
 @pytest.mark.asyncio
 async def test_multi(etcd: AsyncEtcd) -> None:
-    etcd = await etcd
-
     v = await etcd.get("foo")
     assert v is None
     v = await etcd.get("bar")
@@ -203,8 +189,6 @@ async def test_multi(etcd: AsyncEtcd) -> None:
 
 @pytest.mark.asyncio
 async def test_watch(etcd: AsyncEtcd) -> None:
-    etcd = await etcd
-
     records = []
     records_prefix = []
     r_ready = CondVar()
@@ -264,8 +248,6 @@ async def test_watch(etcd: AsyncEtcd) -> None:
 
 @pytest.mark.asyncio
 async def test_watch_once(etcd: AsyncEtcd) -> None:
-    etcd = await etcd
-
     records = []
     records_prefix = []
     r_ready = CondVar()
