@@ -25,11 +25,6 @@ jobs:
     steps:
     - name: Checkout the revision
       uses: actions/checkout@v4
-    - name: Install etcd
-      run: |
-        wget https://github.com/etcd-io/etcd/releases/download/v3.5.18/etcd-v3.5.18-linux-${{ matrix.platform.etcd_arch }}.tar.gz
-        tar -xzf etcd-v3.5.18-linux-${{ matrix.platform.etcd_arch }}.tar.gz
-        mv etcd-v3.5.18-linux-${{ matrix.platform.etcd_arch }}/etcd* /usr/local/bin/
     - name: Set up Python as Runtime
       uses: actions/setup-python@v5
       with:
