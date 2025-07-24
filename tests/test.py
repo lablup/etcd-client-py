@@ -247,6 +247,64 @@ async def test_watch(etcd: AsyncEtcd) -> None:
 
 
 @pytest.mark.asyncio
+async def test_subprocess_segfault_reproduction(etcd_container) -> None:
+    """Test case to reproduce segfault when subprocess terminates quickly."""
+    import subprocess
+    import sys
+    import tempfile
+    import os
+    
+    # Create a script that will be run in subprocess
+    script_content = '''
+import asyncio
+from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
+
+async def main():
+    etcd = AsyncEtcd(
+        addr=HostPortPair(host="127.0.0.1", port=2379),
+        namespace="test_subprocess",
+        scope_prefix_map={
+            ConfigScopes.GLOBAL: "global",
+        },
+    )
+    
+    # Write a key and immediately exit
+    await etcd.put("test_key", "test_value")
+    await etcd.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+'''
+    
+    # Write the script to a temporary file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(script_content)
+        script_path = f.name
+    
+    try:
+        # Run the subprocess 5 times to reproduce the segfault
+        for i in range(5):
+            result = subprocess.run(
+                [sys.executable, script_path],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            # Check if the subprocess completed successfully
+            if result.returncode != 0:
+                print(f"Subprocess {i+1} failed with return code {result.returncode}")
+                print(f"stderr: {result.stderr}")
+                print(f"stdout: {result.stdout}")
+            
+            assert result.returncode == 0, f"Subprocess {i+1} failed with return code {result.returncode}"
+    
+    finally:
+        # Clean up the temporary script file
+        os.unlink(script_path)
+
+
+@pytest.mark.asyncio
 async def test_watch_once(etcd: AsyncEtcd) -> None:
     records = []
     records_prefix = []
