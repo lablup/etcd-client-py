@@ -17,7 +17,7 @@ async def etcd():
         await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
         await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
         await etcd.delete_prefix("", scope=ConfigScopes.NODE)
-        return etcd
+        yield etcd
     finally:
         await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
         await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
@@ -37,7 +37,7 @@ async def gateway_etcd():
     )
     try:
         await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        return etcd
+        yield etcd
     finally:
         await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
         del etcd
