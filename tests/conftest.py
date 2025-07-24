@@ -29,15 +29,16 @@ def etcd_container():
     with DockerContainer(
         f"gcr.io/etcd-development/etcd:{ETCD_VER}",
         command=_etcd_command,
-    ).with_bind_ports("2379/tcp", 2379) as container:
+    ).with_exposed_ports(2379) as container:
         wait_for_logs(container, "ready to serve client requests")
-        yield
+        yield container
 
 
 @pytest.fixture
 async def etcd(etcd_container):
+    host_port = etcd_container.get_exposed_port(2379)
     etcd = AsyncEtcd(
-        addr=HostPortPair(host="127.0.0.1", port=2379),
+        addr=HostPortPair(host="127.0.0.1", port=int(host_port)),
         namespace="test",
         scope_prefix_map={
             ConfigScopes.GLOBAL: "global",
@@ -60,8 +61,9 @@ async def etcd(etcd_container):
 
 @pytest.fixture
 async def gateway_etcd(etcd_container):
+    host_port = etcd_container.get_exposed_port(2379)
     etcd = AsyncEtcd(
-        addr=HostPortPair(host="127.0.0.1", port=2379),
+        addr=HostPortPair(host="127.0.0.1", port=int(host_port)),
         namespace="test",
         scope_prefix_map={
             ConfigScopes.GLOBAL: "",
