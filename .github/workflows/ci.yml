@@ -46,7 +46,7 @@ jobs:
         python -m pip install .
     - name: Test
       run: |
-        python -m pytest
+        PYTHONPATH=. python -m pytest
 
   release-linux:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
