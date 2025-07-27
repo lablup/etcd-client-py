@@ -38,7 +38,7 @@ def etcd_container():
 async def etcd(etcd_container):
     etcd_port = etcd_container.get_exposed_port(2379)
     etcd = AsyncEtcd(
-        addr=HostPortPair(host="127.0.0.1", port=int(etcd_port)),
+        addr=HostPortPair(host="127.0.0.1", port=etcd_port),
         namespace="test",
         scope_prefix_map={
             ConfigScopes.GLOBAL: "global",
