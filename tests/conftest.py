@@ -46,17 +46,16 @@ async def etcd(etcd_container):
             ConfigScopes.NODE: "node/i-test",
         },
     )
-    try:
-        await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
-        await etcd.delete_prefix("", scope=ConfigScopes.NODE)
-        yield etcd
-    finally:
-        await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
-        await etcd.delete_prefix("", scope=ConfigScopes.NODE)
-        await etcd.close()
-        del etcd
+    async with etcd:
+        try:
+            await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
+            await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
+            await etcd.delete_prefix("", scope=ConfigScopes.NODE)
+            yield etcd
+        finally:
+            await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
+            await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
+            await etcd.delete_prefix("", scope=ConfigScopes.NODE)
 
 
 @pytest.fixture
@@ -68,10 +67,10 @@ async def gateway_etcd(etcd_container):
         scope_prefix_map={
             ConfigScopes.GLOBAL: "",
         },
-    )
-    try:
-        await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        yield etcd
-    finally:
-        await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        del etcd
+    )   
+    async with etcd:
+        try:
+            await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
+            yield etcd
+        finally:
+            await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)

@@ -116,6 +116,7 @@ impl PyClient {
         result
     }
 
+    #[pyo3(signature = ())]
     fn __aenter__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         let endpoints = self.endpoints.clone();
         let connect_options = self.connect_options.clone();

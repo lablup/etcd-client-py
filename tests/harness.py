@@ -9,6 +9,7 @@ import enum
 import functools
 import logging
 from collections import ChainMap, namedtuple
+from types import TracebackType
 from typing import (
     AsyncGenerator,
     AsyncIterator,
@@ -165,8 +166,24 @@ class AsyncEtcd:
             connect_options=self._connect_options,
         )
 
-    async def close(self):
-        pass  # for backward compatibility
+    async def open(self) -> None:
+        await self.etcd.__aenter__()
+
+    async def close(self) -> None:
+        await self.etcd.__aexit__()
+
+    async def __aenter__(self) -> "AsyncEtcd":
+        await self.etcd.__aenter__()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> Optional[bool]:
+        ret = await self.etcd.__aexit__(exc_type, exc_val, exc_tb)
+        return ret
 
     def _mangle_key(self, k: str) -> str:
         if k.startswith("/"):

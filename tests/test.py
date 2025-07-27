@@ -269,8 +269,8 @@ async def main():
     )
     
     # Write a key and immediately exit
-    await etcd.put("test_key", "test_value")
-    await etcd.close()
+    async with etcd:
+        await etcd.put("test_key", "test_value")
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -285,10 +285,10 @@ if __name__ == "__main__":
         # Run the subprocess 5 times to reproduce the segfault
         for i in range(5):
             result = subprocess.run(
-                [sys.executable, script_path],
+                [sys.executable, "-u", script_path],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=10,
             )
             
             # Check if the subprocess completed successfully
