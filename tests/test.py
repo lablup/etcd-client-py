@@ -257,11 +257,13 @@ async def test_subprocess_segfault_reproduction(etcd_container) -> None:
     # Create a script that will be run in subprocess
     script_content = '''
 import asyncio
+import sys
+
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
 
-async def main():
+async def main(etcd_port):
     etcd = AsyncEtcd(
-        addr=HostPortPair(host="127.0.0.1", port=2379),
+        addr=HostPortPair(host="127.0.0.1", port=etcd_port),
         namespace="test_subprocess",
         scope_prefix_map={
             ConfigScopes.GLOBAL: "global",
@@ -273,8 +275,10 @@ async def main():
         await etcd.put("test_key", "test_value")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    etcd_port = int(sys.argv[1])
+    asyncio.run(main(etcd_port))
 '''
+    etcd_port = etcd_container.get_exposed_port(2379)
     
     # Write the script to a temporary file
     with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
@@ -285,7 +289,7 @@ if __name__ == "__main__":
         # Run the subprocess 5 times to reproduce the segfault
         for i in range(5):
             result = subprocess.run(
-                [sys.executable, "-u", script_path],
+                [sys.executable, "-u", script_path, str(etcd_port)],
                 capture_output=True,
                 text=True,
                 timeout=10,

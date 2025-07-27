@@ -36,9 +36,9 @@ def etcd_container():
 
 @pytest.fixture
 async def etcd(etcd_container):
-    host_port = etcd_container.get_exposed_port(2379)
+    etcd_port = etcd_container.get_exposed_port(2379)
     etcd = AsyncEtcd(
-        addr=HostPortPair(host="127.0.0.1", port=int(host_port)),
+        addr=HostPortPair(host="127.0.0.1", port=int(etcd_port)),
         namespace="test",
         scope_prefix_map={
             ConfigScopes.GLOBAL: "global",
@@ -60,9 +60,9 @@ async def etcd(etcd_container):
 
 @pytest.fixture
 async def gateway_etcd(etcd_container):
-    host_port = etcd_container.get_exposed_port(2379)
+    etcd_port = etcd_container.get_exposed_port(2379)
     etcd = AsyncEtcd(
-        addr=HostPortPair(host="127.0.0.1", port=int(host_port)),
+        addr=HostPortPair(host="127.0.0.1", port=etcd_port),
         namespace="test",
         scope_prefix_map={
             ConfigScopes.GLOBAL: "",
