@@ -83,7 +83,7 @@ impl PyWatch {
         self.clone()
     }
 
-    fn __anext__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Option<PyObject>> {
+    fn __anext__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Option<Py<PyAny>>> {
         let watch = Arc::new(Mutex::new(self.clone()));
         let event_stream_init_notifier = self.event_stream_init_notifier.clone();
         let watcher = self.watcher.clone();
