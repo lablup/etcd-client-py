@@ -27,7 +27,7 @@ impl PyCompareOp {
         }
     }
 
-    pub fn __richcmp__(&self, py: Python, rhs: &PyCompareOp, op: PyO3CompareOp) -> PyResult<PyObject> {
+    pub fn __richcmp__(&self, py: Python, rhs: &PyCompareOp, op: PyO3CompareOp) -> PyResult<Py<PyAny>> {
         match op {
             PyO3CompareOp::Eq => (self.0 == rhs.0)
                 .into_pyobject(py)
