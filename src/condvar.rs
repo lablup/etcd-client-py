@@ -1,7 +1,8 @@
 use pyo3::{pyclass, *};
-use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::{Mutex, Notify};
+
+use crate::runtime::EtcdRt;
 
 #[pyclass(name = "CondVar")]
 #[derive(Clone)]
@@ -23,21 +24,23 @@ impl PyCondVar {
     pub fn wait<'a>(&'a self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         let condition = self.condition.clone();
-        future_into_py(py, async move {
+        let runtime = EtcdRt::get_or_init();
+        runtime.spawn(py, async move {
             while !*condition.lock().await {
                 inner.notified().await;
             }
-            Ok(())
+            Ok::<(), PyErr>(())
         })
     }
 
     pub fn notify_waiters<'a>(&'a self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
         let inner = self.inner.clone();
         let condition = self.condition.clone();
-        future_into_py(py, async move {
+        let runtime = EtcdRt::get_or_init();
+        runtime.spawn(py, async move {
             *condition.lock().await = true;
             inner.notify_waiters();
-            Ok(())
+            Ok::<(), PyErr>(())
         })
     }
 }

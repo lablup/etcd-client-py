@@ -3,13 +3,13 @@ use etcd_client::WatchOptions;
 use etcd_client::Watcher;
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
-use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::sync::Notify;
 
 use crate::condvar::PyCondVar;
 use crate::error::PyClientError;
+use crate::runtime::EtcdRt;
 use crate::watch_event_stream::PyWatchEventStream;
 
 #[pyclass(name = "Watch")]
@@ -89,8 +89,9 @@ impl PyWatch {
         let watcher = self.watcher.clone();
         let once = self.once;
 
+        let runtime = EtcdRt::get_or_init();
         Ok(Some(
-            future_into_py(py, async move {
+            runtime.spawn(py, async move {
                 let mut watch = watch.lock().await;
                 watch.init().await?;
 

@@ -358,3 +358,25 @@ class GRPCStatusCode(Enum):
 
     Unauthenticated = 16
     """The request does not have valid authentication credentials."""
+
+
+def _cleanup_runtime() -> None:
+    """
+    Explicitly cleanup the tokio runtime.
+
+    This function signals the runtime thread to shutdown and waits for it to complete.
+    It is automatically called when the module is unloaded, but can also be registered
+    with Pythons atexit module for explicit cleanup:
+
+    Example:
+        ```python
+        import atexit
+        from etcd_client import _cleanup_runtime
+        atexit.register(_cleanup_runtime)
+        ```
+
+    Note:
+        This is primarily useful for ensuring clean shutdown in scenarios where
+        the Python interpreter is terminated abruptly or in subprocesses.
+    """
+    ...
