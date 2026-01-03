@@ -31,9 +31,10 @@ jobs:
         toolchain: stable
         override: true
     - name: Install protobuf compiler
-      run: |
-        sudo apt update
-        sudo apt install -y protobuf-compiler
+      uses: arduino/setup-protoc@v3
+      with:
+        version: "33.2"
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
     - name: Install uv and set the Python version
       uses: astral-sh/setup-uv@v7
       with:
