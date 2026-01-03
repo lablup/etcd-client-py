@@ -2,7 +2,6 @@ use pyo3::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::thread::JoinHandle;
-use tokio::runtime::Runtime;
 use tokio::sync::Notify;
 
 /// Global runtime instance
@@ -11,14 +10,11 @@ static RUNTIME: OnceLock<EtcdRt> = OnceLock::new();
 /// Counter for active tasks (for debugging and graceful shutdown)
 static ACTIVE_TASKS: AtomicUsize = AtomicUsize::new(0);
 
-/// Etcd tokio runtime wrapper with explicit cleanup
+/// Etcd runtime wrapper with explicit cleanup
 ///
-/// This struct manages a dedicated tokio runtime and ensures
-/// proper cleanup during Python shutdown, preventing GIL state violations
-/// and segfaults.
+/// This struct provides task tracking and graceful shutdown during
+/// Python shutdown, preventing GIL state violations and segfaults.
 pub struct EtcdRt {
-    /// The tokio runtime (leaked to make it 'static for easy sharing)
-    runtime: &'static Runtime,
     /// Handle to the runtime management thread
     thread: Option<JoinHandle<()>>,
     /// Notifier to signal shutdown
@@ -26,24 +22,14 @@ pub struct EtcdRt {
 }
 
 impl EtcdRt {
-    /// Create and initialize the global runtime
+    /// Create and initialize the global runtime wrapper
     fn new() -> Self {
-        eprintln!("[etcd-client-py] Initializing tokio runtime...");
+        eprintln!("[etcd-client-py] Initializing runtime wrapper...");
 
         let shutdown_notifier = Arc::new(Notify::new());
         let notify_clone = shutdown_notifier.clone();
 
-        // Create a multi-threaded runtime (leaked to make it 'static)
-        let runtime: &'static Runtime = Box::leak(Box::new(
-            tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(4)
-                .thread_name("etcd-runtime-worker")
-                .enable_all()
-                .build()
-                .expect("Failed to create tokio runtime"),
-        ));
-
-        // Spawn a management thread
+        // Spawn a management thread for cleanup coordination
         let thread = std::thread::Builder::new()
             .name("etcd-runtime-manager".to_string())
             .spawn(move || {
@@ -58,10 +44,9 @@ impl EtcdRt {
             })
             .expect("Failed to spawn management thread");
 
-        eprintln!("[etcd-client-py] Tokio runtime initialized");
+        eprintln!("[etcd-client-py] Runtime wrapper initialized");
 
         EtcdRt {
-            runtime,
             thread: Some(thread),
             shutdown_notifier,
         }
