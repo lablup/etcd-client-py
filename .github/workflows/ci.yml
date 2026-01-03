@@ -45,12 +45,12 @@ jobs:
         enable-cache: true
     - name: Install dependencies and build the package
       run: |
-        uv pip install -r requirements.txt
-        uv run maturin build
-        uv pip install .
+        uv pip install --system -r requirements.txt
+        uv run --system maturin build
+        uv pip install --system .
     - name: Test
       run: |
-        uv run pytest
+        uv run --system pytest
 
   release-linux:
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
