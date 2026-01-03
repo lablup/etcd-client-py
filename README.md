@@ -249,9 +249,8 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 make install
 
 # Or manually:
-uv pip install -r requirements.txt
-maturin develop
-uv pip install -e ".[dev]"
+uv sync --all-extras  # Installs all dependencies from pyproject.toml
+uv run maturin develop  # Builds and installs the Rust extension
 ```
 
 ### Code quality checks

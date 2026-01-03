@@ -1,14 +1,16 @@
+# Build targets
 build:
-	maturin build
+	uv run maturin build
 
 install:
-	uv pip install -r requirements.txt
-	uv run maturin develop
 	uv sync --all-extras
+	uv run maturin develop
 
+# Test targets
 test:
 	uv run pytest
 
+# Utility targets
 etcd-clear:
 	etcdctl del "" --from-key=true
 
@@ -44,8 +46,7 @@ lint: lint-py typecheck lint-rust
 
 fix: fix-py fix-rust
 
-# Convenience target for pre-commit checks
 check: lint
 	@echo "All checks passed!"
 
-.PHONY: build install etcd-clear fmt-py lint-py fix-py typecheck fmt-rust lint-rust fix-rust fmt lint fix check
+.PHONY: build install test etcd-clear fmt-py lint-py fix-py typecheck fmt-rust lint-rust fix-rust fmt lint fix check
