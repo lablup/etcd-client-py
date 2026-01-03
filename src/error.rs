@@ -1,4 +1,9 @@
-use pyo3::{create_exception, exceptions::PyException, types::{PyDict, PyDictMethods}, PyErr, Python, *};
+use pyo3::{
+    create_exception,
+    exceptions::PyException,
+    types::{PyDict, PyDictMethods},
+    PyErr, Python, *,
+};
 use std::fmt::Debug;
 
 create_exception!(etcd_client, ClientError, PyException);

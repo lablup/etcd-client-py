@@ -55,7 +55,12 @@ impl PyCommunicator {
         })
     }
 
-    fn put<'a>(&'a self, py: Python<'a>, key: Vec<u8>, value: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
+    fn put<'a>(
+        &'a self,
+        py: Python<'a>,
+        key: Vec<u8>,
+        value: Vec<u8>,
+    ) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
         future_into_py(py, async move {
             let mut client = client.lock().await;
