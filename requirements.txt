@@ -1,5 +1,0 @@
-maturin==1.10.2
-pytest~=8.4.1
-pytest-asyncio~=1.1.0
-trafaret~=2.1
-testcontainers~=4.12.0

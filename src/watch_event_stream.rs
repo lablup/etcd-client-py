@@ -43,7 +43,7 @@ impl PyWatchEventStream {
                 for event in response_events {
                     events.push(event.clone().into());
                 }
-                
+
                 if !events.is_empty() {
                     let event = events[*index].clone();
                     *index += 1;

@@ -237,4 +237,63 @@ distributions under the `dist/` directory.
 
 ## How to develop and test
 
-(TODO: run maturin for an editable setup)
+### Setup development environment
+
+This project uses [uv](https://docs.astral.sh/uv/) for fast Python package management.
+
+```bash
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install all dependencies and build the package
+make install
+
+# Or manually:
+uv sync --all-extras  # Installs all dependencies from pyproject.toml
+uv run maturin develop  # Builds and installs the Rust extension
+```
+
+### Code quality checks
+
+This project uses ruff for linting/formatting and mypy for type checking:
+
+```bash
+# Format Python code
+make fmt-py
+
+# Lint Python code
+make lint-py
+
+# Auto-fix Python issues (format + fixable lints)
+make fix-py
+
+# Type check Python code
+make typecheck
+
+# Auto-fix Rust issues (format + fixable clippy lints)
+make fix-rust
+
+# Auto-fix all issues (Python + Rust)
+make fix
+
+# Format all code (Python + Rust)
+make fmt
+
+# Lint all code (Python + Rust)
+make lint
+
+# Run all checks (Python + Rust)
+make check
+```
+
+### Running tests
+
+```bash
+# Run tests using uv
+make test
+
+# Or directly with uv
+uv run pytest
+
+# The tests use testcontainers to automatically spin up etcd
+```

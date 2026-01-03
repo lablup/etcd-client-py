@@ -123,7 +123,7 @@ class Client:
         """ """
     async def __aenter__(self) -> "Communicator":
         """ """
-    async def __aexit__(self, *args) -> None:
+    async def __aexit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
         """ """
 
 class ConnectOptions:
@@ -242,14 +242,6 @@ class Communicator:
         last compaction revision.
         """
 
-class Watch:
-    """ """
-
-    async def __aiter__(self) -> AsyncIterator["Watch"]:
-        """ """
-    async def __anext__(self) -> "WatchEvent":
-        """ """
-
 class WatchEvent:
     """ """
 
@@ -259,6 +251,7 @@ class WatchEvent:
     prev_value: Optional[bytes]
 
     def __init__(
+        self,
         key: bytes,
         value: bytes,
         event: "WatchEventType",
@@ -274,16 +267,6 @@ class WatchEventType:
     DELETE: Final[Any]
     """
     """
-
-class CondVar:
-    """ """
-
-    def __init__(self) -> None:
-        """ """
-    async def wait(self) -> None:
-        """ """
-    async def notify_waiters(self) -> None:
-        """ """
 
 class ClientError(Exception):
     """ """

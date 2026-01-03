@@ -15,12 +15,12 @@ use pyo3::prelude::*;
 #[pymodule]
 mod etcd_client {
 
-    use pyo3::prelude::*;
     use crate::error::{
         ClientError, ElectError, EndpointError, GRPCStatusError, InvalidArgsError,
-        InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError,
-        TransportError, Utf8Error, WatchError,
+        InvalidHeaderValueError, InvalidUriError, IoError, LeaseKeepAliveError, TransportError,
+        Utf8Error, WatchError,
     };
+    use pyo3::prelude::*;
 
     #[pymodule_export]
     use crate::txn::{PyTxn, PyTxnOp};

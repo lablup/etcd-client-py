@@ -81,7 +81,7 @@ impl PyClient {
         connect_options: Option<PyConnectOptions>,
         lock_options: Option<PyEtcdLockOption>,
     ) -> Self {
-        let connect_options = connect_options.unwrap_or(PyConnectOptions::default());
+        let connect_options = connect_options.unwrap_or_default();
         Self {
             endpoints,
             connect_options,
@@ -148,7 +148,11 @@ impl PyClient {
     }
 
     #[pyo3(signature = (*_args))]
-    fn __aexit__<'a>(&'a self, py: Python<'a>, _args: &Bound<'a, PyTuple>) -> PyResult<Bound<'a, PyAny>> {
+    fn __aexit__<'a>(
+        &'a self,
+        py: Python<'a>,
+        _args: &Bound<'a, PyTuple>,
+    ) -> PyResult<Bound<'a, PyAny>> {
         let lock_options = self.lock_options.clone();
 
         let lock_manager = if lock_options.is_some() {

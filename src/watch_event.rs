@@ -91,7 +91,12 @@ impl PyWatchEventType {
         }
     }
 
-    pub fn __richcmp__(&self, py: Python, rhs: &PyWatchEventType, op: CompareOp) -> PyResult<Py<PyAny>> {
+    pub fn __richcmp__(
+        &self,
+        py: Python,
+        rhs: &PyWatchEventType,
+        op: CompareOp,
+    ) -> PyResult<Py<PyAny>> {
         match op {
             CompareOp::Eq => (self.0 == rhs.0)
                 .into_pyobject(py)
