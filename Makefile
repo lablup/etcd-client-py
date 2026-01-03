@@ -3,8 +3,8 @@ build:
 
 install:
 	uv pip install -r requirements.txt
-	maturin develop
-	uv pip install -e ".[dev]"
+	uv run maturin develop
+	uv sync --all-extras
 
 test:
 	uv run pytest
@@ -14,17 +14,17 @@ etcd-clear:
 
 # Python formatting and linting
 fmt-py:
-	ruff format tests/ etcd_client.pyi
+	uv run ruff format tests/ etcd_client.pyi
 
 lint-py:
-	ruff check tests/ etcd_client.pyi
+	uv run ruff check tests/ etcd_client.pyi
 
 fix-py:
-	ruff format tests/ etcd_client.pyi
-	ruff check --fix tests/ etcd_client.pyi
+	uv run ruff format tests/ etcd_client.pyi
+	uv run ruff check --fix tests/ etcd_client.pyi
 
 typecheck:
-	mypy tests/ etcd_client.pyi
+	uv run mypy tests/ etcd_client.pyi
 
 # Rust formatting and linting
 fmt-rust:
