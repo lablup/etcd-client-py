@@ -1,66 +1,40 @@
 use pyo3::prelude::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, OnceLock};
-use std::thread::JoinHandle;
-use tokio::sync::Notify;
+use std::sync::OnceLock;
 
-/// Global runtime instance
+/// Global runtime wrapper instance
 static RUNTIME: OnceLock<EtcdRt> = OnceLock::new();
 
-/// Counter for active tasks (for debugging and graceful shutdown)
+/// Counter for active tasks (for graceful shutdown)
 static ACTIVE_TASKS: AtomicUsize = AtomicUsize::new(0);
 
-/// Etcd runtime wrapper with explicit cleanup
+/// Runtime wrapper that provides task tracking and graceful shutdown
 ///
-/// This struct provides task tracking and graceful shutdown during
-/// Python shutdown, preventing GIL state violations and segfaults.
+/// This struct tracks active async tasks and waits for them to complete
+/// during Python shutdown, preventing GIL state violations and segfaults.
+///
+/// Note: Tasks still run on pyo3_async_runtimes' runtime. This wrapper
+/// only provides task tracking and a grace period for completion.
 pub struct EtcdRt {
-    /// Handle to the runtime management thread
-    thread: Option<JoinHandle<()>>,
-    /// Notifier to signal shutdown
-    shutdown_notifier: Arc<Notify>,
+    // Marker struct - cleanup happens via Drop
 }
 
 impl EtcdRt {
-    /// Create and initialize the global runtime wrapper
+    /// Create the global runtime wrapper
     fn new() -> Self {
-        eprintln!("[etcd-client-py] Initializing runtime wrapper...");
-
-        let shutdown_notifier = Arc::new(Notify::new());
-        let notify_clone = shutdown_notifier.clone();
-
-        // Spawn a management thread for cleanup coordination
-        let thread = std::thread::Builder::new()
-            .name("etcd-runtime-manager".to_string())
-            .spawn(move || {
-                let mgmt_rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .expect("Failed to create management runtime");
-
-                mgmt_rt.block_on(async {
-                    notify_clone.notified().await;
-                });
-            })
-            .expect("Failed to spawn management thread");
-
-        eprintln!("[etcd-client-py] Runtime wrapper initialized");
-
-        EtcdRt {
-            thread: Some(thread),
-            shutdown_notifier,
-        }
+        eprintln!("[etcd-client-py] Initializing task tracker...");
+        EtcdRt {}
     }
 
-    /// Get or initialize the global runtime
+    /// Get or initialize the global runtime wrapper
     pub fn get_or_init() -> &'static EtcdRt {
         RUNTIME.get_or_init(EtcdRt::new)
     }
 
-    /// Spawn a future on the runtime and convert it to a Python awaitable
+    /// Spawn a future with task tracking
     ///
-    /// This uses pyo3_async_runtimes for Python future integration while
-    /// tracking active tasks for graceful shutdown.
+    /// This wraps the future to track when it starts and completes,
+    /// enabling graceful shutdown by waiting for active tasks.
     pub fn spawn<'a, F, T>(&self, py: Python<'a>, fut: F) -> PyResult<Bound<'a, PyAny>>
     where
         F: std::future::Future<Output = PyResult<T>> + Send + 'static,
@@ -94,7 +68,7 @@ impl EtcdRt {
 
             if start.elapsed() >= timeout {
                 eprintln!(
-                    "[etcd-client-py] Timeout waiting for tasks ({}  still active)",
+                    "[etcd-client-py] Timeout waiting for tasks ({} still active)",
                     active
                 );
                 break;
@@ -108,25 +82,12 @@ impl EtcdRt {
 
 impl Drop for EtcdRt {
     fn drop(&mut self) {
-        eprintln!("[etcd-client-py] Shutting down tokio runtime...");
+        eprintln!("[etcd-client-py] Shutting down...");
 
         // Wait for active tasks to complete (with timeout)
         self.wait_for_tasks(5000);
 
-        // Signal the management thread to shutdown
-        self.shutdown_notifier.notify_one();
-
-        // Wait for the management thread
-        if let Some(handle) = self.thread.take() {
-            if let Err(e) = handle.join() {
-                eprintln!(
-                    "[etcd-client-py] Management thread panicked during shutdown: {:?}",
-                    e
-                );
-            }
-        }
-
-        eprintln!("[etcd-client-py] Runtime shutdown complete (tasks waited)");
+        eprintln!("[etcd-client-py] Shutdown complete");
     }
 }
 
@@ -144,10 +105,6 @@ pub fn _cleanup_runtime() {
     if let Some(rt) = RUNTIME.get() {
         // Wait for tasks to complete
         rt.wait_for_tasks(5000);
-
-        // Signal shutdown
-        rt.shutdown_notifier.notify_one();
-
-        eprintln!("[etcd-client-py] Explicit cleanup complete (tasks waited)");
+        eprintln!("[etcd-client-py] Explicit cleanup complete");
     }
 }
