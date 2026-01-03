@@ -253,6 +253,7 @@ async def test_subprocess_segfault_reproduction(etcd_container) -> None:
     import sys
     import tempfile
     import os
+    from pathlib import Path
 
     # Create a script that will be run in subprocess
     script_content = """
@@ -269,7 +270,7 @@ async def main(etcd_port):
             ConfigScopes.GLOBAL: "global",
         },
     )
-    
+
     # Write a key and immediately exit
     async with etcd:
         await etcd.put("test_key", "test_value")
@@ -285,6 +286,13 @@ if __name__ == "__main__":
         f.write(script_content)
         script_path = f.name
 
+    # Get project root directory (parent of tests directory)
+    project_root = str(Path(__file__).parent.parent.resolve())
+
+    # Set up environment with PYTHONPATH
+    env = os.environ.copy()
+    env["PYTHONPATH"] = project_root
+
     try:
         # Run the subprocess 5 times to reproduce the segfault
         for i in range(5):
@@ -293,6 +301,7 @@ if __name__ == "__main__":
                 capture_output=True,
                 text=True,
                 timeout=10,
+                env=env,
             )
 
             # Check if the subprocess completed successfully
