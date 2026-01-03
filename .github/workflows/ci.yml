@@ -20,7 +20,7 @@ jobs:
           {os: "ubuntu-22.04", arch: "x86_64", etcd_arch: "amd64"},
           {os: "ubuntu-22.04-arm", arch: "aarch64", etcd_arch: "arm64"},
         ]
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t"]
     runs-on: ${{ matrix.platform.os }}
     steps:
     - name: Checkout the revision
@@ -29,6 +29,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
     - name: Set up Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
@@ -59,7 +60,43 @@ jobs:
           {os: "ubuntu-22.04-arm", arch: "aarch64", maturin_arch: "aarch_64"},
         ]
         manylinux: ["manylinux2014"]
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    runs-on: ${{ matrix.platform.os }}
+    steps:
+      - name: Checkout the revision
+        uses: actions/checkout@v4
+      - name: Build the wheel
+        uses: PyO3/maturin-action@v1
+        env:
+          PROTOC: /home/runner/.local/bin/protoc
+        with:
+          command: build
+          args: --release -o dist -i python${{ matrix.python-version }}
+          before-script-linux: |
+            PB_REL="https://github.com/protocolbuffers/protobuf/releases"
+            curl -LO $PB_REL/download/v23.2/protoc-23.2-linux-${{ matrix.platform.maturin_arch }}.zip
+            unzip protoc-23.2-linux-${{ matrix.platform.maturin_arch }}.zip -d $HOME/.local
+            export PATH="$PATH:$HOME/.local/bin"
+          manylinux: ${{ matrix.manylinux }}
+          target: ${{ matrix.platform.arch }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.manylinux }}-${{ matrix.platform.arch }}-${{ matrix.python-version }}
+          path: dist
+
+  release-linux-freethreaded:
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [
+          {os: "ubuntu-22.04", arch: "x86_64", maturin_arch: "x86_64"},
+          {os: "ubuntu-22.04-arm", arch: "aarch64", maturin_arch: "aarch_64"},
+        ]
+        manylinux: ["manylinux2014"]
+        python-version: ["3.14t"]
     runs-on: ${{ matrix.platform.os }}
     steps:
       - name: Checkout the revision
@@ -91,7 +128,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+    steps:
+      - name: Checkout the revision
+        uses: actions/checkout@v4
+      - name: Install prerequisites
+        run: |
+          brew install protobuf
+      - name: Build the wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release -o dist --target universal2-apple-darwin -i python${{ matrix.python-version }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-universal2-${{ matrix.python-version }}
+          path: dist/*
+
+  release-macos-freethreaded:
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: test
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.14t"]
     steps:
       - name: Checkout the revision
         uses: actions/checkout@v4
@@ -132,7 +194,7 @@ jobs:
           path: dist
 
   publish-to-pypi:
-    needs: [release-linux, release-macos, release-source]
+    needs: [release-linux, release-linux-freethreaded, release-macos, release-macos-freethreaded, release-source]
     environment: deploy-to-pypi
     permissions:
       id-token: write

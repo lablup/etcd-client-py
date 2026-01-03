@@ -45,7 +45,7 @@ pub struct PyClientError(pub etcd_client::Error);
 impl From<PyClientError> for PyErr {
     fn from(error: PyClientError) -> Self {
         match &error.0 {
-            etcd_client::Error::GRpcStatus(e) => Python::with_gil(|py| {
+            etcd_client::Error::GRpcStatus(e) => Python::attach(|py| {
                 let error_details = PyDict::new(py);
                 error_details.set_item("code", e.code() as u64).unwrap();
                 error_details
@@ -55,7 +55,7 @@ impl From<PyClientError> for PyErr {
                     .set_item("message", e.message().to_owned())
                     .unwrap();
 
-                let kv_args: PyObject = error_details.into();
+                let kv_args: Py<PyAny> = error_details.unbind().into_any();
                 GRPCStatusError::new_err(kv_args)
             }),
             etcd_client::Error::InvalidArgs(e) => {
