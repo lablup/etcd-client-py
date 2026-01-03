@@ -2,7 +2,7 @@ import pytest
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.waiting_utils import wait_for_logs
 
-from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
+from .harness import AsyncEtcd, ConfigScopes, HostPortPair
 
 ETCD_VER = "v3.5.14"
 

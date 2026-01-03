@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 from etcd_client import CondVar, WatchEventType
-from tests.harness import AsyncEtcd, ConfigScopes
+from .harness import AsyncEtcd, ConfigScopes
 
 
 @pytest.mark.asyncio
