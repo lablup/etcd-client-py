@@ -253,9 +253,9 @@ async def test_subprocess_segfault_reproduction(etcd_container) -> None:
     import sys
     import tempfile
     import os
-    
+
     # Create a script that will be run in subprocess
-    script_content = '''
+    script_content = """
 import asyncio
 import sys
 
@@ -277,14 +277,14 @@ async def main(etcd_port):
 if __name__ == "__main__":
     etcd_port = int(sys.argv[1])
     asyncio.run(main(etcd_port))
-'''
+"""
     etcd_port = etcd_container.get_exposed_port(2379)
-    
+
     # Write the script to a temporary file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
         f.write(script_content)
         script_path = f.name
-    
+
     try:
         # Run the subprocess 5 times to reproduce the segfault
         for i in range(5):
@@ -294,15 +294,17 @@ if __name__ == "__main__":
                 text=True,
                 timeout=10,
             )
-            
+
             # Check if the subprocess completed successfully
             if result.returncode != 0:
-                print(f"Subprocess {i+1} failed with return code {result.returncode}")
+                print(f"Subprocess {i + 1} failed with return code {result.returncode}")
                 print(f"stderr: {result.stderr}")
                 print(f"stdout: {result.stdout}")
-            
-            assert result.returncode == 0, f"Subprocess {i+1} failed with return code {result.returncode}"
-    
+
+            assert result.returncode == 0, (
+                f"Subprocess {i + 1} failed with return code {result.returncode}"
+            )
+
     finally:
         # Clean up the temporary script file
         os.unlink(script_path)

@@ -65,7 +65,7 @@ async def gateway_etcd(etcd_container):
         scope_prefix_map={
             ConfigScopes.GLOBAL: "",
         },
-    )   
+    )
     async with etcd:
         try:
             await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)

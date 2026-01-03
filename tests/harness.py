@@ -170,7 +170,7 @@ class AsyncEtcd:
         await self.etcd.__aenter__()
 
     async def close(self) -> None:
-        await self.etcd.__aexit__()
+        await self.etcd.__aexit__(None, None, None)
 
     async def __aenter__(self) -> "AsyncEtcd":
         await self.etcd.__aenter__()
@@ -181,9 +181,8 @@ class AsyncEtcd:
         exc_type: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
-    ) -> Optional[bool]:
-        ret = await self.etcd.__aexit__(exc_type, exc_val, exc_tb)
-        return ret
+    ) -> None:
+        await self.etcd.__aexit__(exc_type, exc_val, exc_tb)
 
     def _mangle_key(self, k: str) -> str:
         if k.startswith("/"):
