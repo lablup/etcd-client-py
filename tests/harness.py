@@ -10,8 +10,8 @@ import functools
 import logging
 from collections import ChainMap, namedtuple
 from typing import (
+    Any,
     AsyncGenerator,
-    AsyncIterator,
     Callable,
     Iterable,
     List,
@@ -90,7 +90,7 @@ quote = functools.partial(_quote, safe="")
 
 
 def make_dict_from_pairs(key_prefix, pairs, path_sep="/"):
-    result = {}
+    result: dict[str, Any] = {}
     len_prefix = len(key_prefix)
     if isinstance(pairs, dict):
         iterator = pairs.items()
