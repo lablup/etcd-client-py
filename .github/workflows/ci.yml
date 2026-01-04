@@ -25,6 +25,8 @@ jobs:
     steps:
     - name: Checkout the revision
       uses: actions/checkout@v4
+      with:
+        submodules: recursive
     - name: Set up Rust toolchain
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
