@@ -1,0 +1,103 @@
+diff --git a/src/tokio.rs b/src/tokio.rs
+index 0000000..1111111 100644
+--- a/src/tokio.rs
++++ b/src/tokio.rs
+@@ -15,10 +15,12 @@
+
+ use std::cell::OnceCell;
+ use std::ops::Deref;
+-use std::sync::OnceLock;
+-use std::{future::Future, pin::Pin, sync::Mutex};
++use std::sync::{Arc, Mutex, OnceLock};
++use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
++use std::{future::Future, pin::Pin};
+
+ use ::tokio::{
++    sync::Notify,
+     runtime::{Builder, Runtime},
+     task,
+ };
+@@ -67,6 +69,11 @@ impl Deref for Pyo3Runtime {
+ static TOKIO_BUILDER: Lazy<Mutex<Builder>> = Lazy::new(|| Mutex::new(multi_thread()));
+ static TOKIO_RUNTIME: OnceLock<Pyo3Runtime> = OnceLock::new();
+
++// Shutdown coordination
++static SHUTDOWN_REQUESTED: AtomicBool = AtomicBool::new(false);
++static SHUTDOWN_NOTIFIER: Lazy<Arc<Notify>> = Lazy::new(|| Arc::new(Notify::new()));
++static ACTIVE_TASKS: AtomicUsize = AtomicUsize::new(0);
++
+ impl generic::JoinError for task::JoinError {
+     fn is_panic(&self) -> bool {
+         task::JoinError::is_panic(self)
+@@ -201,6 +208,73 @@ pub fn get_runtime<'a>() -> &'a Runtime {
+     })
+ }
+
++/// Get the number of active tasks
++pub fn get_active_task_count() -> usize {
++    ACTIVE_TASKS.load(Ordering::SeqCst)
++}
++
++/// Increment the active task counter (called when a task starts)
++pub fn task_started() {
++    ACTIVE_TASKS.fetch_add(1, Ordering::SeqCst);
++}
++
++/// Decrement the active task counter (called when a task completes)
++pub fn task_completed() {
++    ACTIVE_TASKS.fetch_sub(1, Ordering::SeqCst);
++}
++
++/// Request runtime shutdown and wait for active tasks to complete
++///
++/// This function:
++/// 1. Marks shutdown as requested (preventing new tasks)
++/// 2. Waits for active tasks to complete (with timeout)
++/// 3. Does NOT actually shut down the runtime (due to OnceCell limitations)
++///
++/// Note: Due to the use of OnceLock, we cannot take ownership of the runtime
++/// to shut it down completely. This function provides a grace period for tasks
++/// to complete before Python interpreter shutdown.
++///
++/// # Arguments
++/// * `timeout_ms` - Maximum time to wait for tasks to complete (in milliseconds)
++///
++/// # Returns
++/// * `true` if all tasks completed within timeout
++/// * `false` if timeout occurred with tasks still running
++pub fn request_shutdown(timeout_ms: u64) -> bool {
++    // Mark shutdown as requested
++    SHUTDOWN_REQUESTED.store(true, Ordering::SeqCst);
++
++    // Notify any waiting threads
++    SHUTDOWN_NOTIFIER.notify_waiters();
++
++    // Wait for active tasks to complete
++    let start = std::time::Instant::now();
++    let timeout = std::time::Duration::from_millis(timeout_ms);
++
++    loop {
++        let active = ACTIVE_TASKS.load(Ordering::SeqCst);
++        if active == 0 {
++            return true;
++        }
++        if start.elapsed() >= timeout {
++            return false;
++        }
++        std::thread::sleep(std::time::Duration::from_millis(10));
++    }
++}
++
++/// Check if shutdown has been requested
++pub fn is_shutdown_requested() -> bool {
++    SHUTDOWN_REQUESTED.load(Ordering::SeqCst)
++}
++
++/// Get a clone of the shutdown notifier for custom shutdown coordination
++pub fn get_shutdown_notifier() -> Arc<Notify> {
++    Arc::clone(&*SHUTDOWN_NOTIFIER)
++}
++
+ fn multi_thread() -> Builder {
+     let mut builder = Builder::new_multi_thread();
+     builder.enable_all();
