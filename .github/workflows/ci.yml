@@ -42,9 +42,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies and build the package
       run: |
-        uv sync --locked --all-extras
-        uv run maturin build
-        uv pip install .
+        uv sync --locked --all-extras --no-install-project
+        uv run maturin develop
     - name: Test
       run: |
         uv run pytest
