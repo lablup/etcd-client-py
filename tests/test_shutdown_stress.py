@@ -22,9 +22,14 @@ def _make_test_script(test_code: str, etcd_port: int) -> str:
     """Create a temporary Python script for subprocess testing."""
     return f"""
 import asyncio
+import atexit
 import sys
 
+from etcd_client import _cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
+
+# Register explicit runtime cleanup to wait for tokio shutdown
+atexit.register(_cleanup_runtime)
 
 async def main():
     etcd = AsyncEtcd(
@@ -175,9 +180,14 @@ async def test_shutdown_with_rapid_client_creation(etcd_container) -> None:
     # because it needs multiple client instances
     script = f"""
 import asyncio
+import atexit
 import sys
 
+from etcd_client import _cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
+
+# Register explicit runtime cleanup to wait for tokio shutdown
+atexit.register(_cleanup_runtime)
 
 async def main():
     {test_code}
