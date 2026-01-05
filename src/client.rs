@@ -1,6 +1,7 @@
 use etcd_client::{Client as EtcdClient, ConnectOptions};
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -132,7 +133,7 @@ impl PyClient {
             None
         };
 
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        future_into_py(py, async move {
             match EtcdClient::connect(endpoints, Some(connect_options.0)).await {
                 Ok(client) => {
                     if let Some(lock_manager) = lock_manager {
@@ -160,7 +161,7 @@ impl PyClient {
             None
         };
 
-        pyo3_async_runtimes::tokio::future_into_py(py, async move {
+        future_into_py(py, async move {
             if let Some(lock_manager) = lock_manager {
                 return lock_manager.lock().await.handle_aexit().await;
             }

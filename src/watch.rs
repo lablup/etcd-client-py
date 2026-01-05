@@ -3,6 +3,7 @@ use etcd_client::WatchOptions;
 use etcd_client::Watcher;
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
+use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::sync::Notify;
@@ -89,7 +90,7 @@ impl PyWatch {
         let once = self.once;
 
         Ok(Some(
-            pyo3_async_runtimes::tokio::future_into_py(py, async move {
+            future_into_py(py, async move {
                 let mut watch = watch.lock().await;
                 watch.init().await?;
 
