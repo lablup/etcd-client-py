@@ -1,8 +1,12 @@
 """
 Stress tests for tokio runtime cleanup during Python shutdown.
 
-These tests validate that the graceful shutdown mechanism works correctly
+These tests validate that the automatic graceful shutdown mechanism works correctly
 by running multiple subprocess iterations that create and destroy etcd clients.
+
+With automatic cleanup via reference counting, explicit cleanup_runtime() calls
+are no longer needed - the runtime is automatically cleaned up when the last
+client context exits.
 
 Reference:
     - BA-1976: https://lablup.atlassian.net/browse/BA-1976
@@ -19,11 +23,14 @@ import pytest
 
 
 def _make_test_script(test_code: str, etcd_port: int) -> str:
-    """Create a test script for subprocess execution."""
+    """Create a test script for subprocess execution.
+
+    Note: No explicit cleanup_runtime() call is needed - automatic cleanup
+    happens when the last client context exits.
+    """
     return f"""
 import asyncio
 
-from etcd_client import cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
 
 async def main():
@@ -37,8 +44,7 @@ async def main():
 
     {test_code}
 
-    # Cleanup BEFORE event loop shutdown
-    cleanup_runtime()
+    # No explicit cleanup_runtime() needed - automatic cleanup on context exit
 
 if __name__ == "__main__":
     asyncio.run(main())

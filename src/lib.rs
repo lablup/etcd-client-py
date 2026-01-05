@@ -72,8 +72,9 @@ mod etcd_client {
         )?;
         m.add("EndpointError", py.get_type::<EndpointError>())?;
 
-        // Add runtime cleanup function
+        // Add runtime functions
         m.add_function(wrap_pyfunction!(crate::runtime::cleanup_runtime, m)?)?;
+        m.add_function(wrap_pyfunction!(crate::runtime::active_context_count, m)?)?;
 
         Ok(())
     }

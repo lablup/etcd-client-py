@@ -118,6 +118,9 @@ impl PyClient {
 
     #[pyo3(signature = ())]
     fn __aenter__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
+        // Increment context count before any async work
+        crate::runtime::enter_context();
+
         let endpoints = self.endpoints.clone();
         let connect_options = self.connect_options.clone();
         let lock_options = self.lock_options.clone();
@@ -142,7 +145,11 @@ impl PyClient {
                         Ok(PyCommunicator::new(client))
                     }
                 }
-                Err(e) => Err(PyClientError(e).into()),
+                Err(e) => {
+                    // Connection failed - decrement context count to maintain balance
+                    crate::runtime::exit_context();
+                    Err(PyClientError(e).into())
+                }
             }
         })
     }
@@ -163,8 +170,13 @@ impl PyClient {
 
         future_into_py(py, async move {
             if let Some(lock_manager) = lock_manager {
-                return lock_manager.lock().await.handle_aexit().await;
+                lock_manager.lock().await.handle_aexit().await?;
             }
+
+            // Decrement context count after all cleanup is done
+            // This may trigger runtime shutdown if this was the last active context
+            crate::runtime::exit_context();
+
             Ok(())
         })
     }

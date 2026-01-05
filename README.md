@@ -28,12 +28,12 @@ async def main():
         print(bytes(value).decode())  # testvalue
 ```
 
-### Cleanup on shutdown
+### Automatic runtime cleanup
 
-To prevent segfaults or GIL state violations during Python interpreter shutdown, you should call `cleanup_runtime()` at the end of your main async function before the event loop shuts down:
+The tokio runtime is automatically cleaned up when the last client context exits. In most cases, no explicit cleanup is needed:
 
 ```python
-from etcd_client import EtcdClient, cleanup_runtime
+from etcd_client import EtcdClient
 
 async def main():
     etcd = EtcdClient(['http://127.0.0.1:2379'])
@@ -41,13 +41,21 @@ async def main():
         await communicator.put('testkey'.encode(), 'testvalue'.encode())
         value = await communicator.get('testkey'.encode())
         print(bytes(value).decode())
-    # Cleanup the tokio runtime before returning
-    cleanup_runtime()
+    # Runtime automatically cleaned up when context exits
 
 asyncio.run(main())
 ```
 
-This function signals the internal tokio runtime to shut down gracefully, waiting up to 5 seconds for pending tasks to complete.
+The library uses reference counting to track active client contexts. When the last context exits, the tokio runtime is gracefully shut down, waiting up to 5 seconds for pending tasks to complete. If you create new clients after this, the runtime is automatically re-initialized.
+
+For advanced use cases requiring explicit control, `cleanup_runtime()` is still available:
+
+```python
+from etcd_client import cleanup_runtime
+
+# Force cleanup at a specific point (usually not needed)
+cleanup_runtime()
+```
 
 `EtcdCommunicator.get_prefix(prefix)` will return a tuple of list containing all key-values with given key prefix.
 
