@@ -30,15 +30,11 @@ def _create_dual_library_test_script(etcd_port: int, redis_port: int) -> str:
     """Create a test script that uses both etcd-client-py and valkey-glide."""
     return f"""
 import asyncio
-import atexit
 import sys
 
 # Import both libraries
 from etcd_client import _cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
-
-# Register explicit runtime cleanup to wait for tokio shutdown
-atexit.register(_cleanup_runtime)
 
 try:
     from glide import GlideClientConfiguration, NodeAddress
@@ -102,6 +98,8 @@ async def test_both_libraries():
 
 if __name__ == "__main__":
     asyncio.run(test_both_libraries())
+    # Explicit cleanup AFTER event loop shutdown but BEFORE process exit
+    _cleanup_runtime()
     print("Test completed successfully", file=sys.stderr)
 """
 
@@ -214,13 +212,9 @@ async def test_etcd_only_baseline(etcd_container) -> None:
 
     script = f"""
 import asyncio
-import atexit
 
 from etcd_client import _cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
-
-# Register explicit runtime cleanup to wait for tokio shutdown
-atexit.register(_cleanup_runtime)
 
 async def main():
     etcd = AsyncEtcd(
@@ -246,6 +240,8 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    # Explicit cleanup AFTER event loop shutdown but BEFORE process exit
+    _cleanup_runtime()
 """
 
     successes, failures, failure_details = _run_dual_library_subprocess(

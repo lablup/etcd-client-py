@@ -8,7 +8,6 @@ the race condition between Python interpreter shutdown and tokio background task
 Reference: https://github.com/PyO3/pyo3-async-runtimes/issues/40
 """
 
-import asyncio
 import os
 import subprocess
 import sys
@@ -22,14 +21,10 @@ def _make_test_script(test_code: str, etcd_port: int) -> str:
     """Create a temporary Python script for subprocess testing."""
     return f"""
 import asyncio
-import atexit
 import sys
 
 from etcd_client import _cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
-
-# Register explicit runtime cleanup to wait for tokio shutdown
-atexit.register(_cleanup_runtime)
 
 async def main():
     etcd = AsyncEtcd(
@@ -44,6 +39,8 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    # Explicit cleanup AFTER event loop shutdown but BEFORE process exit
+    _cleanup_runtime()
 """
 
 
@@ -180,20 +177,18 @@ async def test_shutdown_with_rapid_client_creation(etcd_container) -> None:
     # because it needs multiple client instances
     script = f"""
 import asyncio
-import atexit
 import sys
 
 from etcd_client import _cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
-
-# Register explicit runtime cleanup to wait for tokio shutdown
-atexit.register(_cleanup_runtime)
 
 async def main():
     {test_code}
 
 if __name__ == "__main__":
     asyncio.run(main())
+    # Explicit cleanup AFTER event loop shutdown but BEFORE process exit
+    _cleanup_runtime()
 """
 
     _run_subprocess_test(script, iterations=20)
