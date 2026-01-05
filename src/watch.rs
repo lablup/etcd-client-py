@@ -9,7 +9,6 @@ use tokio::sync::Notify;
 
 use crate::condvar::PyCondVar;
 use crate::error::PyClientError;
-use crate::runtime::EtcdRt;
 use crate::watch_event_stream::PyWatchEventStream;
 
 #[pyclass(name = "Watch")]
@@ -89,9 +88,8 @@ impl PyWatch {
         let watcher = self.watcher.clone();
         let once = self.once;
 
-        let runtime = EtcdRt::get_or_init();
         Ok(Some(
-            runtime.spawn(py, async move {
+            pyo3_async_runtimes::tokio::future_into_py(py, async move {
                 let mut watch = watch.lock().await;
                 watch.init().await?;
 

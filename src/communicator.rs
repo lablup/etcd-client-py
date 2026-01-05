@@ -6,7 +6,6 @@ use tokio::sync::Mutex;
 
 use crate::condvar::PyCondVar;
 use crate::error::PyClientError;
-use crate::runtime::EtcdRt;
 use crate::txn::PyTxn;
 use crate::txn_response::PyTxnResponse;
 use crate::watch::PyWatch;
@@ -20,8 +19,7 @@ impl PyCommunicator {
 
     fn get<'a>(&'a self, py: Python<'a>, key: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.get(key, None).await;
             result
@@ -39,8 +37,7 @@ impl PyCommunicator {
 
     fn get_prefix<'a>(&'a self, py: Python<'a>, prefix: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let options = GetOptions::new().with_prefix();
             let result = client.get(prefix, Some(options)).await;
@@ -64,8 +61,7 @@ impl PyCommunicator {
         value: Vec<u8>,
     ) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.put(key, value, None).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
@@ -74,8 +70,7 @@ impl PyCommunicator {
 
     fn delete<'a>(&'a self, py: Python<'a>, key: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.delete(key, None).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
@@ -84,8 +79,7 @@ impl PyCommunicator {
 
     fn delete_prefix<'a>(&'a self, py: Python<'a>, key: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let options = DeleteOptions::new().with_prefix();
             let result = client.delete(key, Some(options)).await;
@@ -95,8 +89,7 @@ impl PyCommunicator {
 
     fn txn<'a>(&'a self, py: Python<'a>, txn: PyTxn) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.txn(txn.0).await;
             result
@@ -107,8 +100,7 @@ impl PyCommunicator {
 
     fn keys_prefix<'a>(&'a self, py: Python<'a>, key: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let options = GetOptions::new().with_prefix();
             let result = client.get(key, Some(options)).await;
@@ -127,8 +119,7 @@ impl PyCommunicator {
 
     fn lock<'a>(&'a self, py: Python<'a>, name: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.lock(name, None).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
@@ -137,19 +128,16 @@ impl PyCommunicator {
 
     fn unlock<'a>(&'a self, py: Python<'a>, name: Vec<u8>) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.unlock(name).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
         })
     }
 
-    // TODO: Implement and use the response types of `lease` type's methods
     fn lease_grant<'a>(&'a self, py: Python<'a>, ttl: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.lease_grant(ttl, None).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
@@ -158,8 +146,7 @@ impl PyCommunicator {
 
     fn lease_revoke<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.lease_revoke(id).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
@@ -168,8 +155,7 @@ impl PyCommunicator {
 
     fn lease_time_to_live<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.lease_time_to_live(id, None).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())
@@ -178,8 +164,7 @@ impl PyCommunicator {
 
     fn lease_keep_alive<'a>(&'a self, py: Python<'a>, id: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             let mut client = client.lock().await;
             let result = client.lease_keep_alive(id).await;
             result.map(|_| ()).map_err(|e| PyClientError(e).into())

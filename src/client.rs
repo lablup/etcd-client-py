@@ -8,7 +8,6 @@ use tokio::sync::Mutex;
 use crate::communicator::PyCommunicator;
 use crate::error::PyClientError;
 use crate::lock_manager::{EtcdLockManager, PyEtcdLockOption};
-use crate::runtime::EtcdRt;
 
 #[pyclass(name = "ConnectOptions")]
 #[derive(Debug, Clone, Default)]
@@ -133,8 +132,7 @@ impl PyClient {
             None
         };
 
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             match EtcdClient::connect(endpoints, Some(connect_options.0)).await {
                 Ok(client) => {
                     if let Some(lock_manager) = lock_manager {
@@ -162,8 +160,7 @@ impl PyClient {
             None
         };
 
-        let runtime = EtcdRt::get_or_init();
-        runtime.spawn(py, async move {
+        pyo3_async_runtimes::tokio::future_into_py(py, async move {
             if let Some(lock_manager) = lock_manager {
                 return lock_manager.lock().await.handle_aexit().await;
             }
