@@ -20,7 +20,9 @@ jobs:
           {os: "ubuntu-22.04", arch: "x86_64", etcd_arch: "amd64"},
           {os: "ubuntu-22.04-arm", arch: "aarch64", etcd_arch: "arm64"},
         ]
-        python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t"]
+        # Use 3.14+gil to explicitly request GIL-enabled Python (not free-threaded)
+        # This prevents uv from accidentally selecting 3.14t when 3.14 is requested
+        python-version: ["3.11", "3.12", "3.13", "3.14+gil", "3.14t"]
     runs-on: ${{ matrix.platform.os }}
     steps:
     - name: Checkout the revision
