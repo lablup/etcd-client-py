@@ -75,16 +75,22 @@ impl Drop for EtcdRt {
 
 /// Explicit cleanup function callable from Python
 ///
-/// This can be registered with Python's atexit module for explicit cleanup:
+/// This should be called at the end of your main async function, before the event loop shuts down:
 /// ```python
-/// import atexit
-/// from etcd_client import _cleanup_runtime
-/// atexit.register(_cleanup_runtime)
+/// from etcd_client import cleanup_runtime
+///
+/// async def main():
+///     # Your etcd operations here
+///     ...
+///     # Cleanup before returning
+///     cleanup_runtime()
+///
+/// asyncio.run(main())
 /// ```
 ///
 /// This function waits for ALL tracked tasks to complete.
 #[pyfunction]
-pub fn _cleanup_runtime() {
+pub fn cleanup_runtime() {
     eprintln!("[etcd-client-py] Explicit cleanup requested");
 
     // Request shutdown and wait for tasks with 5-second timeout

@@ -23,7 +23,7 @@ def _make_test_script(test_code: str, etcd_port: int) -> str:
 import asyncio
 import sys
 
-from etcd_client import _cleanup_runtime
+from etcd_client import cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
 
 async def main():
@@ -37,10 +37,11 @@ async def main():
 
     {test_code}
 
+    # Explicit cleanup BEFORE event loop shutdown
+    cleanup_runtime()
+
 if __name__ == "__main__":
     asyncio.run(main())
-    # Explicit cleanup AFTER event loop shutdown but BEFORE process exit
-    _cleanup_runtime()
 """
 
 
@@ -179,16 +180,17 @@ async def test_shutdown_with_rapid_client_creation(etcd_container) -> None:
 import asyncio
 import sys
 
-from etcd_client import _cleanup_runtime
+from etcd_client import cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
 
 async def main():
     {test_code}
 
+    # Explicit cleanup BEFORE event loop shutdown
+    cleanup_runtime()
+
 if __name__ == "__main__":
     asyncio.run(main())
-    # Explicit cleanup AFTER event loop shutdown but BEFORE process exit
-    _cleanup_runtime()
 """
 
     _run_subprocess_test(script, iterations=20)

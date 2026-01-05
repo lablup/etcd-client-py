@@ -33,7 +33,7 @@ import asyncio
 import sys
 
 # Import both libraries
-from etcd_client import _cleanup_runtime
+from etcd_client import cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
 
 try:
@@ -94,12 +94,11 @@ async def test_both_libraries():
             finally:
                 await glide_client.close()
 
-        # Exit - both libraries' runtimes should clean up gracefully
+    # Cleanup BEFORE event loop shutdown
+    cleanup_runtime()
 
 if __name__ == "__main__":
     asyncio.run(test_both_libraries())
-    # Explicit cleanup AFTER event loop shutdown but BEFORE process exit
-    _cleanup_runtime()
     print("Test completed successfully", file=sys.stderr)
 """
 
@@ -213,7 +212,7 @@ async def test_etcd_only_baseline(etcd_container) -> None:
     script = f"""
 import asyncio
 
-from etcd_client import _cleanup_runtime
+from etcd_client import cleanup_runtime
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
 
 async def main():
@@ -238,10 +237,11 @@ async def main():
 
         await asyncio.gather(*tasks)
 
+    # Cleanup BEFORE event loop shutdown
+    cleanup_runtime()
+
 if __name__ == "__main__":
     asyncio.run(main())
-    # Explicit cleanup AFTER event loop shutdown but BEFORE process exit
-    _cleanup_runtime()
 """
 
     successes, failures, failure_details = _run_dual_library_subprocess(
