@@ -1,0 +1,3 @@
+[submodule "vendor/pyo3-async-runtimes"]
+	path = vendor/pyo3-async-runtimes
+	url = https://github.com/lablup/pyo3-async-runtimes.git

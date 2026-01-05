@@ -4,6 +4,7 @@ mod compare;
 mod condvar;
 mod error;
 mod lock_manager;
+mod runtime;
 mod txn;
 mod txn_response;
 mod watch;
@@ -70,6 +71,10 @@ mod etcd_client {
             py.get_type::<InvalidHeaderValueError>(),
         )?;
         m.add("EndpointError", py.get_type::<EndpointError>())?;
+
+        // Add runtime cleanup function
+        m.add_function(wrap_pyfunction!(crate::runtime::cleanup_runtime, m)?)?;
+
         Ok(())
     }
 }

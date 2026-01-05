@@ -136,7 +136,6 @@ impl PyCommunicator {
         })
     }
 
-    // TODO: Implement and use the response types of `lease` type's methods
     fn lease_grant<'a>(&'a self, py: Python<'a>, ttl: i64) -> PyResult<Bound<'a, PyAny>> {
         let client = self.0.clone();
         future_into_py(py, async move {

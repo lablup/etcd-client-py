@@ -43,6 +43,9 @@ dev = [
 requires = ["maturin>=1.7,<2.0"]
 build-backend = "maturin"
 
+[tool.maturin]
+python-source = "python"
+
 # === Tool Configuration ===
 
 [tool.ruff]

@@ -27,15 +27,16 @@ def etcd_container():
     with DockerContainer(
         f"gcr.io/etcd-development/etcd:{ETCD_VER}",
         command=_etcd_command,
-    ).with_bind_ports("2379/tcp", 2379) as container:
+    ).with_exposed_ports(2379) as container:
         wait_for_logs(container, "ready to serve client requests")
-        yield
+        yield container
 
 
 @pytest.fixture
 async def etcd(etcd_container):
+    etcd_port = etcd_container.get_exposed_port(2379)
     etcd = AsyncEtcd(
-        addr=HostPortPair(host="127.0.0.1", port=2379),
+        addr=HostPortPair(host="127.0.0.1", port=etcd_port),
         namespace="test",
         scope_prefix_map={
             ConfigScopes.GLOBAL: "global",
@@ -43,31 +44,31 @@ async def etcd(etcd_container):
             ConfigScopes.NODE: "node/i-test",
         },
     )
-    try:
-        await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
-        await etcd.delete_prefix("", scope=ConfigScopes.NODE)
-        yield etcd
-    finally:
-        await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
-        await etcd.delete_prefix("", scope=ConfigScopes.NODE)
-        await etcd.close()
-        del etcd
+    async with etcd:
+        try:
+            await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
+            await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
+            await etcd.delete_prefix("", scope=ConfigScopes.NODE)
+            yield etcd
+        finally:
+            await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
+            await etcd.delete_prefix("", scope=ConfigScopes.SGROUP)
+            await etcd.delete_prefix("", scope=ConfigScopes.NODE)
 
 
 @pytest.fixture
 async def gateway_etcd(etcd_container):
+    etcd_port = etcd_container.get_exposed_port(2379)
     etcd = AsyncEtcd(
-        addr=HostPortPair(host="127.0.0.1", port=2379),
+        addr=HostPortPair(host="127.0.0.1", port=etcd_port),
         namespace="test",
         scope_prefix_map={
             ConfigScopes.GLOBAL: "",
         },
     )
-    try:
-        await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        yield etcd
-    finally:
-        await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
-        del etcd
+    async with etcd:
+        try:
+            await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)
+            yield etcd
+        finally:
+            await etcd.delete_prefix("", scope=ConfigScopes.GLOBAL)

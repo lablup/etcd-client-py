@@ -27,7 +27,7 @@ impl PyCondVar {
             while !*condition.lock().await {
                 inner.notified().await;
             }
-            Ok(())
+            Ok::<(), PyErr>(())
         })
     }
 
@@ -37,7 +37,7 @@ impl PyCondVar {
         future_into_py(py, async move {
             *condition.lock().await = true;
             inner.notify_waiters();
-            Ok(())
+            Ok::<(), PyErr>(())
         })
     }
 }

@@ -358,3 +358,32 @@ class GRPCStatusCode(Enum):
 
     Unauthenticated = 16
     """The request does not have valid authentication credentials."""
+
+
+def cleanup_runtime() -> None:
+    """
+    Explicitly cleanup the tokio runtime.
+
+    This function signals the runtime to shutdown and waits for all tracked tasks
+    to complete. It should be called at the end of your main async function,
+    before the event loop shuts down.
+
+    Example:
+        ```python
+        from etcd_client import cleanup_runtime
+
+        async def main():
+            # Your etcd operations here
+            client = Client.connect(["localhost:2379"])
+            await client.put("key", "value")
+            # Cleanup before returning
+            cleanup_runtime()
+
+        asyncio.run(main())
+        ```
+
+    Note:
+        This is useful for ensuring clean shutdown and preventing GIL state
+        violations during Python interpreter finalization.
+    """
+    ...
