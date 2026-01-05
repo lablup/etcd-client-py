@@ -28,48 +28,24 @@ impl EtcdRt {
         RUNTIME.get_or_init(EtcdRt::new)
     }
 
-    /// Spawn a future on the shared runtime with task tracking
+    /// Spawn a future on the shared runtime
     ///
-    /// Tasks are automatically tracked by calling task_started() before execution
-    /// and task_completed() after execution completes.
+    /// Delegates to pyo3_async_runtimes which uses tokio's runtime directly.
+    /// Tokio tracks all spawned tasks internally for shutdown.
     pub fn spawn<'a, F, T>(&self, py: Python<'a>, fut: F) -> PyResult<Bound<'a, PyAny>>
     where
         F: std::future::Future<Output = PyResult<T>> + Send + 'static,
         T: for<'py> pyo3::IntoPyObject<'py> + Send + 'static,
     {
-        // Increment task counter before spawning
-        pyo3_async_runtimes::tokio::task_started();
-
-        // Wrap the future to decrement counter on completion
-        let wrapped_fut = async move {
-            let result = fut.await;
-            pyo3_async_runtimes::tokio::task_completed();
-            result
-        };
-
-        // Delegate to pyo3_async_runtimes
-        pyo3_async_runtimes::tokio::future_into_py(py, wrapped_fut)
+        // Delegate to pyo3_async_runtimes - tokio tracks tasks internally
+        pyo3_async_runtimes::tokio::future_into_py(py, fut)
     }
 }
 
 impl Drop for EtcdRt {
     fn drop(&mut self) {
-        eprintln!("[etcd-client-py] Shutting down...");
-
-        // Request shutdown and wait for tasks with 5-second timeout
-        let all_completed = pyo3_async_runtimes::tokio::request_shutdown(5000);
-
-        if all_completed {
-            eprintln!("[etcd-client-py] All tasks completed");
-        } else {
-            let remaining = pyo3_async_runtimes::tokio::get_active_task_count();
-            eprintln!(
-                "[etcd-client-py] Timeout - {} tasks still active",
-                remaining
-            );
-        }
-
-        eprintln!("[etcd-client-py] Shutdown complete");
+        eprintln!("[etcd-client-py] Runtime wrapper dropped");
+        // Note: Actual runtime shutdown happens via cleanup_runtime() or process exit
     }
 }
 
@@ -88,23 +64,17 @@ impl Drop for EtcdRt {
 /// asyncio.run(main())
 /// ```
 ///
-/// This function waits for ALL tracked tasks to complete.
+/// This function uses tokio's `shutdown_timeout()` to gracefully shut down all tasks.
 #[pyfunction]
 pub fn cleanup_runtime() {
-    eprintln!("[etcd-client-py] Explicit cleanup requested");
+    eprintln!("[etcd-client-py] Cleanup requested - using tokio shutdown_timeout");
 
-    // Request shutdown and wait for tasks with 5-second timeout
-    let all_completed = pyo3_async_runtimes::tokio::request_shutdown(5000);
+    // Use tokio's built-in shutdown with 5-second timeout
+    let shutdown_performed = pyo3_async_runtimes::tokio::request_shutdown(5000);
 
-    if all_completed {
-        eprintln!("[etcd-client-py] All tasks completed");
+    if shutdown_performed {
+        eprintln!("[etcd-client-py] Tokio runtime shutdown completed");
     } else {
-        let remaining = pyo3_async_runtimes::tokio::get_active_task_count();
-        eprintln!(
-            "[etcd-client-py] Explicit cleanup incomplete - {} tasks still active",
-            remaining
-        );
+        eprintln!("[etcd-client-py] Shutdown skipped (borrowed runtime or already shut down)");
     }
-
-    eprintln!("[etcd-client-py] Explicit cleanup complete");
 }
