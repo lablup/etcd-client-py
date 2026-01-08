@@ -33,6 +33,9 @@ jobs:
       with:
         toolchain: stable
         override: true
+        # Include Python version in cache key to prevent cross-contamination
+        # between GIL-enabled (3.14) and free-threaded (3.14t) builds
+        cache-key: py${{ matrix.python-version }}
     - name: Install protobuf compiler
       uses: arduino/setup-protoc@v3
       with:
