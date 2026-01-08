@@ -20,17 +20,7 @@ jobs:
           {os: "ubuntu-22.04", arch: "x86_64", etcd_arch: "amd64"},
           {os: "ubuntu-22.04-arm", arch: "aarch64", etcd_arch: "arm64"},
         ]
-        # Note: 3.14 = GIL-enabled (default), 3.14t = free-threaded
-        # uv installs GIL-enabled Python by default when using "3.14"
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.14t"]
-        exclude:
-          # ARM64 + Python 3.14 (GIL-enabled) has a bug where uv's Python build
-          # incorrectly triggers PyO3 to generate free-threaded code, causing
-          # "undefined symbol: PyUnstable_Module_SetGIL" errors at runtime.
-          # ARM64 + Python 3.14t (free-threaded) works correctly.
-          # See: https://github.com/astral-sh/uv/issues/16253
-          - platform: {os: "ubuntu-22.04-arm", arch: "aarch64", etcd_arch: "arm64"}
-            python-version: "3.14"
     runs-on: ${{ matrix.platform.os }}
     steps:
     - name: Checkout the revision
