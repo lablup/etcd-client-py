@@ -57,6 +57,12 @@ jobs:
         uv sync --locked --all-extras --no-install-project
         PYO3_PRINT_CONFIG=1 uv run maturin develop 2>&1 || true
         uv run maturin develop
+    - name: Upload built extension module (for debugging)
+      if: matrix.platform.arch == 'aarch64' && matrix.python-version == '3.14'
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-extension-${{ matrix.platform.arch }}-${{ matrix.python-version }}
+        path: python/etcd_client/*.so
     - name: Test
       run: |
         uv run pytest
