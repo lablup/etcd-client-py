@@ -1,6 +1,6 @@
 import pytest
 from testcontainers.core.container import DockerContainer
-from testcontainers.core.waiting_utils import wait_for_logs
+from testcontainers.core.wait_strategies import LogMessageWaitStrategy
 
 from .harness import AsyncEtcd, ConfigScopes, HostPortPair
 
@@ -24,11 +24,12 @@ _etcd_command = """/usr/local/bin/etcd
 
 @pytest.fixture(scope="session")
 def etcd_container():
-    with DockerContainer(
-        f"gcr.io/etcd-development/etcd:{ETCD_VER}",
-        command=_etcd_command,
-    ).with_exposed_ports(2379) as container:
-        wait_for_logs(container, "ready to serve client requests")
+    container = (
+        DockerContainer(f"gcr.io/etcd-development/etcd:{ETCD_VER}", command=_etcd_command)
+        .with_exposed_ports(2379)
+        .waiting_for(LogMessageWaitStrategy("ready to serve client requests"))
+    )
+    with container:
         yield container
 
 
