@@ -35,6 +35,7 @@ test = [
     "testcontainers>=4.13.3,<5",
 ]
 dev = [
+    "maturin>=1.11,<2.0",
     "ruff>=0.14.10",
     "mypy>=1.19.1",
 ]
