@@ -360,13 +360,45 @@ class GRPCStatusCode(Enum):
     """The request does not have valid authentication credentials."""
 
 
+def active_context_count() -> int:
+    """
+    Get the number of currently active client contexts.
+
+    Returns the count of client context managers currently in use (inside
+    `async with` blocks). This is useful for debugging and testing the
+    automatic cleanup behavior.
+
+    Returns:
+        The number of active client contexts. Returns 0 when no clients
+        are in an active context manager.
+
+    Example:
+        ```python
+        from etcd_client import Client, active_context_count
+
+        client = Client(["localhost:2379"])
+        print(active_context_count())  # 0
+
+        async with client.connect():
+            print(active_context_count())  # 1
+
+        print(active_context_count())  # 0
+        ```
+    """
+    ...
+
+
 def cleanup_runtime() -> None:
     """
     Explicitly cleanup the tokio runtime.
 
+    In most cases, the runtime is automatically cleaned up when the last
+    client context exits. This function is provided for cases where explicit
+    control is needed, such as when using the client without a context manager.
+
     This function signals the runtime to shutdown and waits for all tracked tasks
-    to complete. It should be called at the end of your main async function,
-    before the event loop shuts down.
+    to complete (up to 5 seconds). After shutdown, the runtime will be lazily
+    re-initialized if new client operations are performed.
 
     Example:
         ```python
@@ -374,16 +406,16 @@ def cleanup_runtime() -> None:
 
         async def main():
             # Your etcd operations here
-            client = Client.connect(["localhost:2379"])
-            await client.put("key", "value")
-            # Cleanup before returning
-            cleanup_runtime()
+            async with client.connect():
+                await client.put("key", "value")
+            # Runtime is automatically cleaned up when context exits
+            # Explicit call is usually not needed
 
         asyncio.run(main())
         ```
 
     Note:
-        This is useful for ensuring clean shutdown and preventing GIL state
-        violations during Python interpreter finalization.
+        This function is idempotent - calling it multiple times or when the
+        runtime is already shut down is safe and has no effect.
     """
     ...
