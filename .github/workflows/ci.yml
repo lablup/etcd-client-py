@@ -75,6 +75,9 @@ jobs:
     steps:
       - name: Checkout the revision
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
       - name: Build the wheel
         uses: PyO3/maturin-action@v1
         env:
@@ -89,6 +92,7 @@ jobs:
             export PATH="$PATH:$HOME/.local/bin"
           manylinux: ${{ matrix.manylinux }}
           target: ${{ matrix.platform.arch }}
+          rust-toolchain: stable
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -111,6 +115,9 @@ jobs:
     steps:
       - name: Checkout the revision
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
       - name: Build the wheel
         uses: PyO3/maturin-action@v1
         env:
@@ -125,6 +132,7 @@ jobs:
             export PATH="$PATH:$HOME/.local/bin"
           manylinux: ${{ matrix.manylinux }}
           target: ${{ matrix.platform.arch }}
+          rust-toolchain: stable
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -142,6 +150,14 @@ jobs:
     steps:
       - name: Checkout the revision
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Set up Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: false
       - name: Install prerequisites
         run: |
           brew install protobuf
@@ -167,6 +183,14 @@ jobs:
     steps:
       - name: Checkout the revision
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+      - name: Set up Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          cache: false
       - name: Install prerequisites
         run: |
           brew install protobuf
@@ -188,6 +212,9 @@ jobs:
     steps:
       - name: Checkout the revision
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
       - name: Set up Python as Runtime
         uses: actions/setup-python@v5
         with:
