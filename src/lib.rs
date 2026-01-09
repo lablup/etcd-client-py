@@ -76,6 +76,7 @@ mod etcd_client {
         // Add runtime functions
         m.add_function(wrap_pyfunction!(crate::runtime::cleanup_runtime, m)?)?;
         m.add_function(wrap_pyfunction!(crate::runtime::active_context_count, m)?)?;
+        m.add_function(wrap_pyfunction!(crate::runtime::_trigger_shutdown, m)?)?;
         m.add_function(wrap_pyfunction!(crate::runtime::_join_pending_shutdown, m)?)?;
 
         Ok(())

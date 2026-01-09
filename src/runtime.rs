@@ -15,26 +15,18 @@ pub fn enter_context() {
 
 /// Called when a client exits its async context (`__aexit__`).
 ///
-/// Decrements the active context count. If this was the last active context
-/// (count drops from 1 to 0), automatically triggers runtime shutdown.
+/// Decrements the active context count and returns `true` if this was the
+/// last active context (count drops from 1 to 0).
 ///
-/// Note: Uses `request_shutdown_background` instead of `request_shutdown`
-/// because this function is called from within an async context (inside
-/// `future_into_py`). The background version signals shutdown without
-/// blocking, allowing the current async task to complete gracefully.
+/// Note: This function does NOT trigger the shutdown directly. The caller
+/// should trigger shutdown from Python AFTER the tokio task completes, to
+/// avoid a race condition where the runtime starts shutting down while the
+/// task is still returning its result.
 ///
-/// Returns `true` if cleanup was triggered, `false` otherwise.
+/// Returns `true` if this was the last context, `false` otherwise.
 pub fn exit_context() -> bool {
     let prev = ACTIVE_CONTEXTS.fetch_sub(1, Ordering::SeqCst);
-
-    if prev == 1 {
-        // Was 1, now 0 - last context exited, cleanup runtime
-        // Use background shutdown since we're inside an async context
-        pyo3_async_runtimes::tokio::request_shutdown_background(5000);
-        true
-    } else {
-        false
-    }
+    prev == 1
 }
 
 /// Get the current count of active client contexts.
@@ -72,6 +64,19 @@ pub fn active_context_count() -> usize {
 #[pyfunction]
 pub fn cleanup_runtime() {
     pyo3_async_runtimes::tokio::request_shutdown(5000);
+}
+
+/// Internal function to trigger runtime shutdown in the background.
+///
+/// This is called from Python AFTER the tokio task has completed and
+/// returned its result. This avoids a race condition where the runtime
+/// starts shutting down while a task is still trying to return.
+///
+/// Users should not call this directly - it's used internally by the
+/// client's `__aexit__` implementation.
+#[pyfunction]
+pub fn _trigger_shutdown() {
+    pyo3_async_runtimes::tokio::request_shutdown_background(5000);
 }
 
 /// Internal function to join the pending runtime shutdown thread.
