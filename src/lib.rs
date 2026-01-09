@@ -23,15 +23,7 @@ mod etcd_client {
     };
     use pyo3::prelude::*;
 
-    #[pymodule_export]
-    use crate::txn::{PyTxn, PyTxnOp};
-
-    #[pymodule_export]
-    use crate::txn_response::PyTxnResponse;
-
-    #[pymodule_export]
-    use crate::lock_manager::PyEtcdLockOption;
-
+    // Classes
     #[pymodule_export]
     use crate::client::{PyClient, PyConnectOptions};
 
@@ -43,6 +35,15 @@ mod etcd_client {
 
     #[pymodule_export]
     use crate::condvar::PyCondVar;
+
+    #[pymodule_export]
+    use crate::lock_manager::PyEtcdLockOption;
+
+    #[pymodule_export]
+    use crate::txn::{PyTxn, PyTxnOp};
+
+    #[pymodule_export]
+    use crate::txn_response::PyTxnResponse;
 
     #[pymodule_export]
     use crate::watch::PyWatch;
@@ -57,6 +58,7 @@ mod etcd_client {
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let py = m.py();
 
+        // Exception types
         m.add("ClientError", py.get_type::<ClientError>())?;
         m.add("GRPCStatusError", py.get_type::<GRPCStatusError>())?;
         m.add("InvalidArgsError", py.get_type::<InvalidArgsError>())?;
@@ -67,15 +69,14 @@ mod etcd_client {
         m.add("Utf8Error", py.get_type::<Utf8Error>())?;
         m.add("LeaseKeepAliveError", py.get_type::<LeaseKeepAliveError>())?;
         m.add("ElectError", py.get_type::<ElectError>())?;
-        m.add(
-            "InvalidHeaderValueError",
-            py.get_type::<InvalidHeaderValueError>(),
-        )?;
+        m.add("InvalidHeaderValueError", py.get_type::<InvalidHeaderValueError>())?;
         m.add("EndpointError", py.get_type::<EndpointError>())?;
 
-        // Add runtime functions
+        // Runtime management (public API)
         m.add_function(wrap_pyfunction!(crate::runtime::cleanup_runtime, m)?)?;
         m.add_function(wrap_pyfunction!(crate::runtime::active_context_count, m)?)?;
+
+        // Runtime internals (used by __aexit__)
         m.add_function(wrap_pyfunction!(crate::runtime::_trigger_shutdown, m)?)?;
         m.add_function(wrap_pyfunction!(crate::runtime::_join_pending_shutdown, m)?)?;
 

@@ -21,16 +21,16 @@ from pathlib import Path
 
 import pytest
 
+# Subprocess timeout values (seconds)
+DEFAULT_TIMEOUT = 10
+THREADED_TIMEOUT = 20  # Multi-threaded tests need more time
+MIXED_CONCURRENCY_TIMEOUT = 30  # Most complex scenario
+
 
 def _make_test_script(test_code: str, etcd_port: int) -> str:
-    """Create a test script for subprocess execution.
-
-    Note: No explicit cleanup_runtime() call is needed - automatic cleanup
-    happens when the last client context exits.
-    """
+    """Create a test script for subprocess execution."""
     return f"""
 import asyncio
-
 from tests.harness import AsyncEtcd, ConfigScopes, HostPortPair
 
 async def main():
@@ -41,10 +41,7 @@ async def main():
             ConfigScopes.GLOBAL: "global",
         }},
     )
-
     {test_code}
-
-    # No explicit cleanup_runtime() needed - automatic cleanup on context exit
 
 if __name__ == "__main__":
     asyncio.run(main())
@@ -52,15 +49,9 @@ if __name__ == "__main__":
 
 
 def _run_subprocess_test(
-    script_content: str, iterations: int = 10, timeout: int = 10
+    script_content: str, iterations: int = 10, timeout: int = DEFAULT_TIMEOUT
 ) -> None:
-    """Run a test script in subprocess multiple times to detect shutdown issues.
-
-    Args:
-        script_content: The Python script to run.
-        iterations: Number of times to run the script.
-        timeout: Subprocess timeout in seconds per iteration (default 10).
-    """
+    """Run a test script in subprocess multiple times to detect shutdown issues."""
     project_root = str(Path(__file__).parent.parent.resolve())
     env = os.environ.copy()
     env["PYTHONPATH"] = project_root
@@ -81,14 +72,12 @@ def _run_subprocess_test(
             )
 
             if result.returncode != 0:
-                failures.append(
-                    {
-                        "iteration": i + 1,
-                        "returncode": result.returncode,
-                        "stderr": result.stderr,
-                        "stdout": result.stdout,
-                    }
-                )
+                failures.append({
+                    "iteration": i + 1,
+                    "returncode": result.returncode,
+                    "stderr": result.stderr,
+                    "stdout": result.stdout,
+                })
 
         if failures:
             error_msg = f"Failed {len(failures)}/{iterations} iterations:\n"
@@ -115,7 +104,6 @@ async def test_shutdown_with_active_watch(etcd_container) -> None:
         watch_iter = etcd.watch("test_key")
         await etcd.put("test_key", "value1")
 """
-
     script = _make_test_script(test_code, etcd_port)
     _run_subprocess_test(script, iterations=20)
 
@@ -132,7 +120,6 @@ async def test_shutdown_with_concurrent_operations(etcd_container) -> None:
             tasks.append(etcd.put(f"key_{i}", f"value_{i}"))
         await asyncio.gather(*tasks)
 """
-
     script = _make_test_script(test_code, etcd_port)
     _run_subprocess_test(script, iterations=20)
 
@@ -146,14 +133,13 @@ async def test_shutdown_rapid_subprocess(etcd_container) -> None:
     async with etcd:
         await etcd.put("rapid_test", "value")
 """
-
     script = _make_test_script(test_code, etcd_port)
     _run_subprocess_test(script, iterations=50)
 
 
 @pytest.mark.asyncio
 async def test_shutdown_sanity_check(etcd_container) -> None:
-    """Verify that the subprocess test infrastructure works correctly."""
+    """Verify subprocess test infrastructure works correctly."""
     etcd_port = etcd_container.get_exposed_port(2379)
 
     test_code = """
@@ -162,18 +148,13 @@ async def test_shutdown_sanity_check(etcd_container) -> None:
         value = await etcd.get("sanity")
         assert value == "check"
 """
-
     script = _make_test_script(test_code, etcd_port)
     _run_subprocess_test(script, iterations=5)
 
 
 @pytest.mark.asyncio
 async def test_shutdown_multi_async_tasks(etcd_container) -> None:
-    """Test shutdown with multiple concurrent async tasks, each with its own client.
-
-    This tests the reference counting mechanism with multiple clients sharing
-    one event loop - shutdown should only happen when the last client exits.
-    """
+    """Test shutdown with multiple concurrent async tasks sharing one event loop."""
     etcd_port = etcd_container.get_exposed_port(2379)
 
     script = f"""
@@ -184,9 +165,7 @@ async def worker(worker_id: int):
     etcd = AsyncEtcd(
         addr=HostPortPair(host="127.0.0.1", port={etcd_port}),
         namespace=f"test_multi_task_{{worker_id}}",
-        scope_prefix_map={{
-            ConfigScopes.GLOBAL: "global",
-        }},
+        scope_prefix_map={{ConfigScopes.GLOBAL: "global"}},
     )
     async with etcd:
         for i in range(5):
@@ -194,24 +173,18 @@ async def worker(worker_id: int):
             await asyncio.sleep(0.01)
 
 async def main():
-    # Launch 5 concurrent tasks, each with its own client
     tasks = [asyncio.create_task(worker(i)) for i in range(5)]
     await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
     asyncio.run(main())
 """
-
     _run_subprocess_test(script, iterations=20)
 
 
 @pytest.mark.asyncio
 async def test_shutdown_multi_threaded(etcd_container) -> None:
-    """Test shutdown with multiple threads, each running its own event loop.
-
-    This tests thread safety of the reference counting mechanism - each thread
-    has its own asyncio event loop and creates/destroys clients independently.
-    """
+    """Test shutdown with multiple threads, each running its own event loop."""
     etcd_port = etcd_container.get_exposed_port(2379)
 
     script = f"""
@@ -225,33 +198,24 @@ def thread_worker(thread_id: int, results: list, errors: list):
             etcd = AsyncEtcd(
                 addr=HostPortPair(host="127.0.0.1", port={etcd_port}),
                 namespace=f"test_multi_thread_{{thread_id}}",
-                scope_prefix_map={{
-                    ConfigScopes.GLOBAL: "global",
-                }},
+                scope_prefix_map={{ConfigScopes.GLOBAL: "global"}},
             )
             async with etcd:
                 for i in range(3):
                     await etcd.put(f"key_{{thread_id}}_{{i}}", f"value_{{i}}")
-
         asyncio.run(async_work())
         results.append(thread_id)
     except Exception as e:
         errors.append((thread_id, str(e)))
 
 def main():
-    results = []
-    errors = []
-    threads = []
-
-    # Launch 4 threads, each with its own event loop and client
+    results, errors, threads = [], [], []
     for i in range(4):
         t = threading.Thread(target=thread_worker, args=(i, results, errors))
         threads.append(t)
         t.start()
-
     for t in threads:
         t.join(timeout=10)
-
     if errors:
         raise RuntimeError(f"Thread errors: {{errors}}")
     if len(results) != 4:
@@ -260,18 +224,12 @@ def main():
 if __name__ == "__main__":
     main()
 """
-
-    # Use longer timeout (20s) for multi-threaded test due to thread setup overhead
-    _run_subprocess_test(script, iterations=10, timeout=20)
+    _run_subprocess_test(script, iterations=10, timeout=THREADED_TIMEOUT)
 
 
 @pytest.mark.asyncio
 async def test_shutdown_mixed_concurrency(etcd_container) -> None:
-    """Test shutdown with mixed concurrency: multiple threads with multiple async tasks each.
-
-    This is the most complex scenario - multiple threads each running their own
-    event loop with multiple concurrent async tasks.
-    """
+    """Test shutdown with multiple threads, each running multiple async tasks."""
     etcd_port = etcd_container.get_exposed_port(2379)
 
     script = f"""
@@ -285,15 +243,12 @@ def thread_worker(thread_id: int, results: list, errors: list):
             etcd = AsyncEtcd(
                 addr=HostPortPair(host="127.0.0.1", port={etcd_port}),
                 namespace=f"test_mixed_{{thread_id}}_{{task_id}}",
-                scope_prefix_map={{
-                    ConfigScopes.GLOBAL: "global",
-                }},
+                scope_prefix_map={{ConfigScopes.GLOBAL: "global"}},
             )
             async with etcd:
-                await etcd.put(f"key", f"value_{{thread_id}}_{{task_id}}")
+                await etcd.put("key", f"value_{{thread_id}}_{{task_id}}")
 
         async def run_tasks():
-            # Each thread runs 3 concurrent async tasks
             tasks = [asyncio.create_task(async_task(i)) for i in range(3)]
             await asyncio.gather(*tasks)
 
@@ -303,19 +258,13 @@ def thread_worker(thread_id: int, results: list, errors: list):
         errors.append((thread_id, str(e)))
 
 def main():
-    results = []
-    errors = []
-    threads = []
-
-    # Launch 3 threads
+    results, errors, threads = [], [], []
     for i in range(3):
         t = threading.Thread(target=thread_worker, args=(i, results, errors))
         threads.append(t)
         t.start()
-
     for t in threads:
         t.join(timeout=15)
-
     if errors:
         raise RuntimeError(f"Thread errors: {{errors}}")
     if len(results) != 3:
@@ -324,7 +273,4 @@ def main():
 if __name__ == "__main__":
     main()
 """
-
-    # Use longer timeout (30s) for mixed concurrency test - most complex scenario
-    # with multiple threads each running multiple async tasks
-    _run_subprocess_test(script, iterations=10, timeout=30)
+    _run_subprocess_test(script, iterations=10, timeout=MIXED_CONCURRENCY_TIMEOUT)

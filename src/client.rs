@@ -10,6 +10,21 @@ use crate::communicator::PyCommunicator;
 use crate::error::PyClientError;
 use crate::lock_manager::{EtcdLockManager, PyEtcdLockOption};
 
+/// Python wrapper coroutine for async exit.
+///
+/// Shutdown sequence:
+/// 1. Await inner_cleanup (tokio task) - returns true if this was the last context
+/// 2. If last context: trigger_shutdown_fn() signals runtime to shut down
+/// 3. Then await to_thread(join_fn) to block until runtime thread terminates
+const AEXIT_WRAPPER_CODE: &std::ffi::CStr = c"
+async def _aexit_wrapper():
+    is_last = await inner_cleanup
+    if is_last:
+        trigger_shutdown_fn()
+        await to_thread(join_fn)
+_result = _aexit_wrapper()
+";
+
 #[pyclass(name = "ConnectOptions")]
 #[derive(Debug, Clone, Default)]
 pub struct PyConnectOptions(pub ConnectOptions);
@@ -81,10 +96,9 @@ impl PyClient {
         connect_options: Option<PyConnectOptions>,
         lock_options: Option<PyEtcdLockOption>,
     ) -> Self {
-        let connect_options = connect_options.unwrap_or_default();
         Self {
             endpoints,
-            connect_options,
+            connect_options: connect_options.unwrap_or_default(),
             lock_options,
             lock_manager: None,
         }
@@ -118,7 +132,6 @@ impl PyClient {
 
     #[pyo3(signature = ())]
     fn __aenter__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Bound<'a, PyAny>> {
-        // Increment context count before any async work
         crate::runtime::enter_context();
 
         let endpoints = self.endpoints.clone();
@@ -130,7 +143,6 @@ impl PyClient {
                 self.clone(),
                 lock_options.clone(),
             ))));
-
             Some(self.lock_manager.clone().unwrap())
         } else {
             None
@@ -146,7 +158,6 @@ impl PyClient {
                     }
                 }
                 Err(e) => {
-                    // Connection failed - decrement context count to maintain balance
                     crate::runtime::exit_context();
                     Err(PyClientError(e).into())
                 }
@@ -160,64 +171,31 @@ impl PyClient {
         py: Python<'a>,
         _args: &Bound<'a, PyTuple>,
     ) -> PyResult<Bound<'a, PyAny>> {
-        let lock_options = self.lock_options.clone();
+        let lock_manager = self
+            .lock_options
+            .as_ref()
+            .map(|_| self.lock_manager.clone().unwrap());
 
-        let lock_manager = if lock_options.is_some() {
-            Some(self.lock_manager.clone().unwrap())
-        } else {
-            None
-        };
-
-        // Create the tokio async cleanup coroutine
-        // Returns True if this was the last client (context count dropped to 0)
+        // Tokio task: cleanup and return whether this was the last context
         let inner_cleanup = future_into_py(py, async move {
             if let Some(lock_manager) = lock_manager {
                 lock_manager.lock().await.handle_aexit().await?;
             }
-
-            // Decrement context count after all cleanup is done
-            // Returns true if this was the last active context
-            let is_last_context = crate::runtime::exit_context();
-
-            Ok(is_last_context)
+            Ok(crate::runtime::exit_context())
         })?;
 
-        // Get the runtime functions for use in the wrapper
+        // Build Python wrapper coroutine
         let etcd_client = py.import("etcd_client")?;
-        let trigger_shutdown_fn = etcd_client.getattr("_trigger_shutdown")?;
-        let join_fn = etcd_client.getattr("_join_pending_shutdown")?;
-
-        // Create a Python wrapper coroutine that:
-        // 1. Awaits the inner cleanup (tokio task)
-        // 2. If this was the last context, trigger shutdown AFTER tokio task completes
-        // 3. Then await the blocking join via to_thread
         let asyncio = py.import("asyncio")?;
-        let to_thread = asyncio.getattr("to_thread")?;
 
-        // Build the wrapper coroutine using Python code
         let globals = PyDict::new(py);
         globals.set_item("inner_cleanup", inner_cleanup)?;
-        globals.set_item("trigger_shutdown_fn", trigger_shutdown_fn)?;
-        globals.set_item("join_fn", join_fn)?;
-        globals.set_item("to_thread", to_thread)?;
+        globals.set_item("trigger_shutdown_fn", etcd_client.getattr("_trigger_shutdown")?)?;
+        globals.set_item("join_fn", etcd_client.getattr("_join_pending_shutdown")?)?;
+        globals.set_item("to_thread", asyncio.getattr("to_thread")?)?;
 
-        py.run(
-            c"
-async def _aexit_wrapper():
-    is_last_context = await inner_cleanup
-    if is_last_context:
-        # Trigger shutdown AFTER the tokio task has completed
-        # This avoids a race where shutdown starts while the task is returning
-        trigger_shutdown_fn()
-        await to_thread(join_fn)
-    return None
-_result = _aexit_wrapper()
-",
-            Some(&globals),
-            None,
-        )?;
+        py.run(AEXIT_WRAPPER_CODE, Some(&globals), None)?;
 
-        let result = globals.get_item("_result")?.unwrap();
-        Ok(result)
+        Ok(globals.get_item("_result")?.unwrap())
     }
 }
