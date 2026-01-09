@@ -18,13 +18,19 @@ pub fn enter_context() {
 /// Decrements the active context count. If this was the last active context
 /// (count drops from 1 to 0), automatically triggers runtime shutdown.
 ///
+/// Note: Uses `request_shutdown_background` instead of `request_shutdown`
+/// because this function is called from within an async context (inside
+/// `future_into_py`). The background version signals shutdown without
+/// blocking, allowing the current async task to complete gracefully.
+///
 /// Returns `true` if cleanup was triggered, `false` otherwise.
 pub fn exit_context() -> bool {
     let prev = ACTIVE_CONTEXTS.fetch_sub(1, Ordering::SeqCst);
 
     if prev == 1 {
         // Was 1, now 0 - last context exited, cleanup runtime
-        pyo3_async_runtimes::tokio::request_shutdown(5000);
+        // Use background shutdown since we're inside an async context
+        pyo3_async_runtimes::tokio::request_shutdown_background(5000);
         true
     } else {
         false
