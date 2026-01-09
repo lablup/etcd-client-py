@@ -15,7 +15,7 @@ pip install etcd_client
 
 ```python
 from etcd_client import EtcdClient
-etcd = EtcdClient(['http:://127.0.0.1:2379'])
+etcd = EtcdClient(['http://127.0.0.1:2379'])
 ```
 
 Actual connection establishment with Etcd's gRPC channel will be done when you call `EtcdClient.connect()`.
@@ -28,36 +28,9 @@ async def main():
         print(bytes(value).decode())  # testvalue
 ```
 
-### Automatic runtime cleanup
+### Working with key prefixes
 
-The tokio runtime is automatically cleaned up when the last client context exits. In most cases, no explicit cleanup is needed:
-
-```python
-from etcd_client import EtcdClient
-
-async def main():
-    etcd = EtcdClient(['http://127.0.0.1:2379'])
-    async with etcd.connect() as communicator:
-        await communicator.put('testkey'.encode(), 'testvalue'.encode())
-        value = await communicator.get('testkey'.encode())
-        print(bytes(value).decode())
-    # Runtime automatically cleaned up when context exits
-
-asyncio.run(main())
-```
-
-The library uses reference counting to track active client contexts. When the last context exits, the tokio runtime is gracefully shut down, waiting up to 5 seconds for pending tasks to complete. If you create new clients after this, the runtime is automatically re-initialized.
-
-For advanced use cases requiring explicit control, `cleanup_runtime()` is still available:
-
-```python
-from etcd_client import cleanup_runtime
-
-# Force cleanup at a specific point (usually not needed)
-cleanup_runtime()
-```
-
-`EtcdCommunicator.get_prefix(prefix)` will return a tuple of list containing all key-values with given key prefix.
+`EtcdCommunicator.get_prefix(prefix)` returns a list of key-value pairs matching the given prefix.
 
 ```python
 async def main():
@@ -77,9 +50,39 @@ async def main():
             print([bytes(v).decode() for v in resp])
 ```
 
+## Automatic runtime cleanup
+
+The tokio runtime is automatically cleaned up when the last client context exits. In most cases, no explicit cleanup is needed:
+
+```python
+import asyncio
+from etcd_client import EtcdClient
+
+async def main():
+    etcd = EtcdClient(['http://127.0.0.1:2379'])
+    async with etcd.connect() as communicator:
+        await communicator.put('testkey'.encode(), 'testvalue'.encode())
+        value = await communicator.get('testkey'.encode())
+        print(bytes(value).decode())
+    # Runtime automatically cleaned up when context exits
+
+asyncio.run(main())
+```
+
+The library uses reference counting to track active client contexts. When the last context exits, the tokio runtime is gracefully shut down, waiting up to 5 seconds for pending tasks to complete. If you create new clients after this, the runtime is automatically re-initialized.
+
+For advanced use cases requiring explicit control, `cleanup_runtime()` is available:
+
+```python
+from etcd_client import cleanup_runtime
+
+# Force cleanup at a specific point (usually not needed)
+cleanup_runtime()
+```
+
 ## Operating with Etcd lock
 
-Just like `EtcdClient.connect()`, you can easilly use etcd lock by calling `EtcdClient.with_lock(lock_opts)`.
+Just like `EtcdClient.connect()`, you can easily use etcd lock by calling `EtcdClient.with_lock(lock_opts)`.
 
 ```python
 async def first():
@@ -106,18 +109,11 @@ async with etcd.connect() as communicator:
 await asyncio.gather(first(), second())  # first: testvalue | second: testvalue
 ```
 
-Adding `timeout` parameter to `EtcdClient.with_lock()` call will add a timeout to lock acquiring process.
+### Lock timeout
+
+Adding `timeout` parameter to `EtcdLockOption` will add a timeout to the lock acquiring process.
 
 ```python
-async def first():
-    async with etcd.with_lock(
-        EtcdLockOption(
-            lock_name='foolock'.encode(),
-        )
-    ) as communicator:
-        value = await communicator.get('testkey'.encode())
-        print('first:', bytes(value).decode(), end=' | ')
-
 async def second():
     await asyncio.sleep(0.1)
     async with etcd.with_lock(
@@ -128,13 +124,11 @@ async def second():
     ) as communicator:
         value = await communicator.get('testkey'.encode())
         print('second:', bytes(value).decode())
-
-async with etcd.connect() as communicator:
-    await communicator.put('testkey'.encode(), 'testvalue'.encode())
-await asyncio.gather(first(), second())  # first: testvalue | second: testvalue
 ```
 
-Adding `ttl` parameter to `EtcdClient.with_lock()` call will force lock to be released after given seconds.
+### Lock TTL
+
+Adding `ttl` parameter to `EtcdLockOption` will force the lock to be released after the given seconds.
 
 ```python
 async def first():
@@ -162,7 +156,7 @@ for task in done:
 
 ## Watch
 
-You can watch changes on key with `EtcdCommunicator.watch(key)`.
+You can watch changes on a key with `EtcdCommunicator.watch(key)`.
 
 ```python
 async def watch():
@@ -187,7 +181,9 @@ await asyncio.gather(watch(), update())
 # WatchEventType.PUT 5
 ```
 
-Watching changes on keys with specific prefix can be also done by `EtcdCommunicator.watch_prefix(key_prefix)`.
+### Watch with prefix
+
+Watching changes on keys with a specific prefix can be done with `EtcdCommunicator.watch_prefix(key_prefix)`.
 
 ```python
 async def watch():
@@ -212,11 +208,11 @@ await asyncio.gather(watch(), update())
 
 ## Transaction
 
-You can run etcd transaction by calling `EtcdCommunicator.txn(txn)`.
+You can run etcd transactions by calling `EtcdCommunicator.txn(txn)`.
 
 ### Constructing compares
 
-Constructing compare operations can be done by comparing `Compare` instance.
+Constructing compare operations can be done using the `Compare` class.
 
 ```python
 from etcd_client import Compare, CompareOp
@@ -226,7 +222,7 @@ compares = [
 ]
 ```
 
-### Executing transaction calls
+### Executing transactions
 
 ```python
 async with etcd.connect() as communicator:
@@ -240,29 +236,26 @@ async with etcd.connect() as communicator:
     ]
 
     res = await communicator.txn(Txn().when(compares).and_then([TxnOp.get('successkey'.encode())]))
-    print(res) # TODO: Need to write response type bindings.
+    print(res)  # TODO: Need to write response type bindings.
 ```
 
 ## How to build
 
-### Prerequisite
+### Prerequisites
 
-* The Rust development environment (the 2021 edition or later) using [`rustup`](https://rustup.rs/) or your package manager
+* The Rust development environment (2021 edition or later) using [`rustup`](https://rustup.rs/) or your package manager
 * The Python development environment (3.10 or later) using [`pyenv`](https://github.com/pyenv/pyenv#installation) or your package manager
 
-### Build instruction
+### Build instructions
 
-First, create a virtualenv (either using the standard venv package, pyenv, or
-whatever your favorite).  Then, install the PEP-517 build toolchain and run it.
+First, create a virtualenv (using the standard venv package, pyenv, or your preferred tool). Then, install the PEP-517 build toolchain and run it.
 
 ```shell
 pip install -U pip build setuptools
 python -m build --sdist --wheel
 ```
 
-It will automatically install build dependencies like
-[`maturin`](https://github.com/PyO3/maturin) and build the wheel and source
-distributions under the `dist/` directory.
+This will automatically install build dependencies like [`maturin`](https://github.com/PyO3/maturin) and build the wheel and source distributions under the `dist/` directory.
 
 ## How to develop and test
 
@@ -287,42 +280,18 @@ uv run maturin develop  # Builds and installs the Rust extension
 This project uses ruff for linting/formatting and mypy for type checking:
 
 ```bash
-# Format Python code
-make fmt-py
-
-# Lint Python code
-make lint-py
-
-# Auto-fix Python issues (format + fixable lints)
-make fix-py
-
-# Type check Python code
-make typecheck
-
-# Auto-fix Rust issues (format + fixable clippy lints)
-make fix-rust
-
-# Auto-fix all issues (Python + Rust)
-make fix
-
-# Format all code (Python + Rust)
-make fmt
-
-# Lint all code (Python + Rust)
-make lint
-
-# Run all checks (Python + Rust)
-make check
+make fmt       # Format all code (Python + Rust)
+make lint      # Lint all code (Python + Rust)
+make fix       # Auto-fix all issues (Python + Rust)
+make typecheck # Type check Python code
+make check     # Run all checks
 ```
 
 ### Running tests
 
 ```bash
-# Run tests using uv
-make test
+make test      # Run tests using uv
+uv run pytest  # Or directly with uv
 
-# Or directly with uv
-uv run pytest
-
-# The tests use testcontainers to automatically spin up etcd
+# Tests use testcontainers to automatically spin up etcd
 ```
