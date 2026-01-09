@@ -56,6 +56,12 @@ mod etcd_client {
     #[pymodule_init]
     fn init(m: &Bound<'_, PyModule>) -> PyResult<()> {
         let py = m.py();
+
+        // Register atexit handler for tokio runtime cleanup.
+        // This ensures runtime threads are properly joined before Python finalizes,
+        // preventing SIGSEGV when tokio threads run during interpreter shutdown.
+        pyo3_async_runtimes::tokio::register_atexit_cleanup(py)?;
+
         m.add("ClientError", py.get_type::<ClientError>())?;
         m.add("GRPCStatusError", py.get_type::<GRPCStatusError>())?;
         m.add("InvalidArgsError", py.get_type::<InvalidArgsError>())?;
