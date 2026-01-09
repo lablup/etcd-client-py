@@ -49,23 +49,12 @@ jobs:
     - name: Check python build
       run: |
         uv run --no-project python -c 'import sys; print(sys.prefix); print(sys.version_info)'
-        uv run --no-project python -c 'import sysconfig; print("Py_GIL_DISABLED=", sysconfig.get_config_var("Py_GIL_DISABLED"))'
+        uv run --no-project python -c 'import sysconfig; print(f"Py_GIL_DISABLED={sysconfig.get_config_var("Py_GIL_DISABLED")}")'
         uv run --no-project python -c 'import sys; print(f"{sys.abiflags=}")'
-        which python
-        python --version
-        which -a python3.14 || true
-        which -a python3.14t || true
     - name: Install dependencies and build the package
       run: |
         uv sync --locked --all-extras --no-install-project
-        PYO3_PRINT_CONFIG=1 uv run maturin develop 2>&1 || true
         uv run maturin develop
-    - name: Upload built extension module (for debugging)
-      if: matrix.platform.arch == 'aarch64' && matrix.python-version == '3.14'
-      uses: actions/upload-artifact@v4
-      with:
-        name: debug-extension-${{ matrix.platform.arch }}-${{ matrix.python-version }}
-        path: python/etcd_client/*.so
     - name: Test
       run: |
         uv run pytest
