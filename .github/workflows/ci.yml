@@ -49,7 +49,7 @@ jobs:
     - name: Check python build
       run: |
         uv run --no-project python -c 'import sys; print(sys.prefix); print(sys.version_info)'
-        uv run --no-project python -c 'import sysconfig; print(f"Py_GIL_DISABLED={sysconfig.get_config_var("Py_GIL_DISABLED")}")'
+        uv run --no-project python -c 'import sysconfig; flag=sysconfig.get_config_var("Py_GIL_DISABLED"); print(f"Py_GIL_DISABLED={flag}")'
         uv run --no-project python -c 'import sys; print(f"{sys.abiflags=}")'
     - name: Install dependencies and build the package
       run: |
