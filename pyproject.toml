@@ -21,19 +21,19 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
-dependencies = [
-  "maturin>=1.11.2",
-  "pytest>=9.0.2,<10",
-  "pytest-asyncio>=1.3.0,<2",
-  "trafaret>=2.1,<3",
-  "testcontainers>=4.13.3,<5",
-]
+dependencies = []
 
 [project.urls]
 homepage = "https://github.com/lablup/etcd-client-py"
 repository = "https://github.com/lablup/etcd-client-py"
 
 [project.optional-dependencies]
+test = [
+    "pytest>=9.0.2,<10",
+    "pytest-asyncio>=1.3.0,<2",
+    "trafaret>=2.1,<3",
+    "testcontainers>=4.13.3,<5",
+]
 dev = [
     "ruff>=0.14.10",
     "mypy>=1.19.1",
