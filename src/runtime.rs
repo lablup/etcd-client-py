@@ -73,3 +73,16 @@ pub fn active_context_count() -> usize {
 pub fn cleanup_runtime() {
     pyo3_async_runtimes::tokio::request_shutdown(5000);
 }
+
+/// Internal function to join the pending runtime shutdown thread.
+///
+/// This is called from Python via `asyncio.to_thread()` to block until
+/// the runtime thread has fully terminated. The GIL is released during
+/// the blocking wait.
+///
+/// Users should not call this directly - it's used internally by the
+/// client's `__aexit__` implementation.
+#[pyfunction]
+pub fn _join_pending_shutdown(py: Python<'_>) -> bool {
+    pyo3_async_runtimes::tokio::join_pending_shutdown(py)
+}

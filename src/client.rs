@@ -1,6 +1,6 @@
 use etcd_client::{Client as EtcdClient, ConnectOptions};
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
+use pyo3::types::{PyDict, PyTuple};
 use pyo3_async_runtimes::tokio::future_into_py;
 use std::sync::Arc;
 use std::time::Duration;
@@ -168,16 +168,50 @@ impl PyClient {
             None
         };
 
-        future_into_py(py, async move {
+        // Create the tokio async cleanup coroutine
+        // Returns True if this was the last client and shutdown was triggered
+        let inner_cleanup = future_into_py(py, async move {
             if let Some(lock_manager) = lock_manager {
                 lock_manager.lock().await.handle_aexit().await?;
             }
 
             // Decrement context count after all cleanup is done
             // This may trigger runtime shutdown if this was the last active context
-            crate::runtime::exit_context();
+            let triggered_shutdown = crate::runtime::exit_context();
 
-            Ok(())
-        })
+            Ok(triggered_shutdown)
+        })?;
+
+        // Get the join function for use in the wrapper
+        let etcd_client = py.import("etcd_client")?;
+        let join_fn = etcd_client.getattr("_join_pending_shutdown")?;
+
+        // Create a Python wrapper coroutine that:
+        // 1. Awaits the inner cleanup
+        // 2. If shutdown was triggered, awaits the blocking join via to_thread
+        let asyncio = py.import("asyncio")?;
+        let to_thread = asyncio.getattr("to_thread")?;
+
+        // Build the wrapper coroutine using Python code
+        let globals = PyDict::new(py);
+        globals.set_item("inner_cleanup", inner_cleanup)?;
+        globals.set_item("join_fn", join_fn)?;
+        globals.set_item("to_thread", to_thread)?;
+
+        py.run(
+            c"
+async def _aexit_wrapper():
+    triggered_shutdown = await inner_cleanup
+    if triggered_shutdown:
+        await to_thread(join_fn)
+    return None
+_result = _aexit_wrapper()
+",
+            Some(&globals),
+            None,
+        )?;
+
+        let result = globals.get_item("_result")?.unwrap();
+        Ok(result)
     }
 }
