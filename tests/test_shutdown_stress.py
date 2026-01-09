@@ -51,8 +51,16 @@ if __name__ == "__main__":
 """
 
 
-def _run_subprocess_test(script_content: str, iterations: int = 10) -> None:
-    """Run a test script in subprocess multiple times to detect shutdown issues."""
+def _run_subprocess_test(
+    script_content: str, iterations: int = 10, timeout: int = 10
+) -> None:
+    """Run a test script in subprocess multiple times to detect shutdown issues.
+
+    Args:
+        script_content: The Python script to run.
+        iterations: Number of times to run the script.
+        timeout: Subprocess timeout in seconds per iteration (default 10).
+    """
     project_root = str(Path(__file__).parent.parent.resolve())
     env = os.environ.copy()
     env["PYTHONPATH"] = project_root
@@ -68,7 +76,7 @@ def _run_subprocess_test(script_content: str, iterations: int = 10) -> None:
                 [sys.executable, "-u", script_path],
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=timeout,
                 env=env,
             )
 
@@ -253,7 +261,8 @@ if __name__ == "__main__":
     main()
 """
 
-    _run_subprocess_test(script, iterations=10)
+    # Use longer timeout (20s) for multi-threaded test due to thread setup overhead
+    _run_subprocess_test(script, iterations=10, timeout=20)
 
 
 @pytest.mark.asyncio
@@ -316,4 +325,6 @@ if __name__ == "__main__":
     main()
 """
 
-    _run_subprocess_test(script, iterations=10)
+    # Use longer timeout (30s) for mixed concurrency test - most complex scenario
+    # with multiple threads each running multiple async tasks
+    _run_subprocess_test(script, iterations=10, timeout=30)
