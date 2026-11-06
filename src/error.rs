@@ -83,7 +83,7 @@ impl From<PyClientError> for PyErr {
             etcd_client::Error::ElectError(e) => {
                 ElectError::new_err(format!("ElectError(err={})", e))
             }
-            etcd_client::Error::InvalidHeaderValue(e) => {
+            etcd_client::Error::InvalidMetadataValue(e) => {
                 InvalidHeaderValueError::new_err(format!("InvalidHeaderValueError(err={})", e))
             }
             etcd_client::Error::EndpointError(e) => {
@@ -92,6 +92,7 @@ impl From<PyClientError> for PyErr {
             etcd_client::Error::EndpointsNotManaged => {
                 EndpointsNotManagedError::new_err("EndpointsNotManagedError")
             }
+            etcd_client::Error::Internal(e) => ClientError::new_err(format!("Internal(err={})", e)),
         }
     }
 }

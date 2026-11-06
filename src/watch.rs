@@ -1,6 +1,7 @@
 use etcd_client::Client as EtcdClient;
+use etcd_client::Error as EtcdError;
 use etcd_client::WatchOptions;
-use etcd_client::Watcher;
+use etcd_client::WatchRequestSender;
 use pyo3::exceptions::PyStopAsyncIteration;
 use pyo3::prelude::*;
 use pyo3_async_runtimes::tokio::future_into_py;
@@ -12,6 +13,11 @@ use crate::condvar::PyCondVar;
 use crate::error::PyClientError;
 use crate::watch_event_stream::PyWatchEventStream;
 
+struct CreatedWatch {
+    watch_id: i64,
+    request_sender: WatchRequestSender,
+}
+
 #[pyclass(name = "Watch")]
 #[derive(Clone)]
 pub struct PyWatch {
@@ -19,7 +25,7 @@ pub struct PyWatch {
     key: Vec<u8>,
     once: bool,
     options: Option<WatchOptions>,
-    watcher: Arc<Mutex<Option<Watcher>>>,
+    created_watch: Arc<Mutex<Option<CreatedWatch>>>,
     event_stream_init_notifier: Arc<Notify>,
     event_stream: Arc<Mutex<Option<PyWatchEventStream>>>,
     ready_event: Option<PyCondVar>,
@@ -43,7 +49,7 @@ impl PyWatch {
             options,
             event_stream_init_notifier: Arc::new(Notify::new()),
             event_stream: Arc::new(Mutex::new(None)),
-            watcher: Arc::new(Mutex::new(None)),
+            created_watch: Arc::new(Mutex::new(None)),
             ready_event,
             cleanup_event,
         }
@@ -60,20 +66,35 @@ impl PyWatch {
 
         let mut client = self.client.lock().await;
 
-        match client.watch(self.key.clone(), self.options.clone()).await {
-            Ok((watcher, stream)) => {
-                *event_stream = Some(PyWatchEventStream::new(stream, self.once));
-                *self.watcher.lock().await = Some(watcher);
+        let (request_sender, mut response_stream) = client
+            .watch(self.key.clone(), self.options.clone())
+            .await
+            .map_err(PyClientError)?
+            .split();
 
-                event_stream_init_notifier.notify_waiters();
-
-                if let Some(ready_event) = &self.ready_event {
-                    ready_event._notify_waiters().await;
-                }
-                Ok(())
+        // `Client::watch` returns before the server creates the watch, and `ready_event` promises
+        // that it has been created.
+        let watch_id = match response_stream.message().await.map_err(PyClientError)? {
+            Some(response) if response.created() => response.watch_id(),
+            _ => {
+                return Err(PyClientError(EtcdError::WatchError(
+                    "failed to create watch".to_string(),
+                )));
             }
-            Err(error) => Err(PyClientError(error)),
+        };
+
+        *event_stream = Some(PyWatchEventStream::new(response_stream, self.once));
+        *self.created_watch.lock().await = Some(CreatedWatch {
+            watch_id,
+            request_sender,
+        });
+
+        event_stream_init_notifier.notify_waiters();
+
+        if let Some(ready_event) = &self.ready_event {
+            ready_event._notify_waiters().await;
         }
+        Ok(())
     }
 }
 
@@ -86,7 +107,7 @@ impl PyWatch {
     fn __anext__<'a>(&'a mut self, py: Python<'a>) -> PyResult<Option<Py<PyAny>>> {
         let watch = Arc::new(Mutex::new(self.clone()));
         let event_stream_init_notifier = self.event_stream_init_notifier.clone();
-        let watcher = self.watcher.clone();
+        let created_watch = self.created_watch.clone();
         let once = self.once;
 
         Ok(Some(
@@ -105,8 +126,13 @@ impl PyWatch {
                 let event = match event_stream.next().await {
                     Some(result) => {
                         if once {
-                            let mut watcher = watcher.lock().await;
-                            watcher.as_mut().unwrap().cancel().await.unwrap();
+                            let mut created_watch = created_watch.lock().await;
+                            let created_watch = created_watch.as_mut().unwrap();
+                            created_watch
+                                .request_sender
+                                .cancel(created_watch.watch_id)
+                                .await
+                                .unwrap();
                         }
 
                         result
