@@ -25,7 +25,7 @@ mod etcd_client {
 
     // Classes
     #[pymodule_export]
-    use crate::client::{PyClient, PyConnectOptions};
+    use crate::client::{PyClient, PyConnectOptions, PyTlsOptions};
 
     #[pymodule_export]
     use crate::communicator::PyCommunicator;

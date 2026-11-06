@@ -28,6 +28,23 @@ async def main():
         print(bytes(value).decode())  # testvalue
 ```
 
+### Connecting over TLS
+
+Use `https://` endpoints and pass the certificates as PEM bytes. `with_identity()` is needed only when the server requires client certificates.
+
+```python
+from pathlib import Path
+
+from etcd_client import Client, ConnectOptions, TlsOptions
+
+tls = (
+    TlsOptions()
+    .with_ca_certificate(Path("ca.pem").read_bytes())
+    .with_identity(Path("client.pem").read_bytes(), Path("client-key.pem").read_bytes())
+)
+etcd = Client(["https://127.0.0.1:2379"], connect_options=ConnectOptions().with_tls(tls))
+```
+
 ### Working with key prefixes
 
 `EtcdCommunicator.get_prefix(prefix)` returns a list of key-value pairs matching the given prefix.

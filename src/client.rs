@@ -1,4 +1,4 @@
-use etcd_client::{Client as EtcdClient, ConnectOptions};
+use etcd_client::{Certificate, Client as EtcdClient, ConnectOptions, Identity, TlsOptions};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyTuple};
 use pyo3_async_runtimes::tokio::future_into_py;
@@ -25,9 +25,40 @@ async def _aexit_wrapper():
 _result = _aexit_wrapper()
 ";
 
+#[pyclass(name = "TlsOptions")]
+#[derive(Clone)]
+pub struct PyTlsOptions(pub TlsOptions);
+
+#[pymethods]
+impl PyTlsOptions {
+    #[new]
+    fn new() -> Self {
+        Self(TlsOptions::new())
+    }
+
+    fn with_ca_certificate(&self, pem: &[u8]) -> Self {
+        PyTlsOptions(self.0.clone().ca_certificate(Certificate::from_pem(pem)))
+    }
+
+    fn with_identity(&self, cert_pem: &[u8], key_pem: &[u8]) -> Self {
+        PyTlsOptions(
+            self.0
+                .clone()
+                .identity(Identity::from_pem(cert_pem, key_pem)),
+        )
+    }
+}
+
 #[pyclass(name = "ConnectOptions")]
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 pub struct PyConnectOptions(pub ConnectOptions);
+
+// The Debug output of `ConnectOptions` includes the password and the TLS private key.
+impl std::fmt::Debug for PyConnectOptions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("ConnectOptions { .. }")
+    }
+}
 
 #[pymethods]
 impl PyConnectOptions {
@@ -75,7 +106,9 @@ impl PyConnectOptions {
         )
     }
 
-    // TODO: Implement "tls", "tls-openssl" authentification
+    fn with_tls(&self, tls: PyTlsOptions) -> Self {
+        PyConnectOptions(self.0.clone().with_tls(tls.0))
+    }
 }
 
 #[pyclass(name = "Client")]
