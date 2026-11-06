@@ -47,6 +47,14 @@ impl PyTlsOptions {
                 .identity(Identity::from_pem(cert_pem, key_pem)),
         )
     }
+
+    fn with_handshake_timeout(&self, handshake_timeout: f64) -> Self {
+        PyTlsOptions(
+            self.0
+                .clone()
+                .timeout(Duration::from_secs_f64(handshake_timeout)),
+        )
+    }
 }
 
 #[pyclass(name = "ConnectOptions")]

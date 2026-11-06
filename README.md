@@ -32,6 +32,8 @@ async def main():
 
 Use `https://` endpoints and pass the certificates as PEM bytes. `with_identity()` is needed only when the server requires client certificates.
 
+Set `with_handshake_timeout()` as well. Without it, a server that stops responding during the TLS handshake blocks the connection indefinitely, because `ConnectOptions.with_timeout()` and `with_connect_timeout()` do not end it.
+
 ```python
 from pathlib import Path
 
@@ -41,6 +43,7 @@ tls = (
     TlsOptions()
     .with_ca_certificate(Path("ca.pem").read_bytes())
     .with_identity(Path("client.pem").read_bytes(), Path("client-key.pem").read_bytes())
+    .with_handshake_timeout(5.0)
 )
 etcd = Client(["https://127.0.0.1:2379"], connect_options=ConnectOptions().with_tls(tls))
 ```
