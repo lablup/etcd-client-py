@@ -10,7 +10,7 @@ name = "etcd_client"
 crate-type = ["cdylib"]
 
 [dependencies]
-etcd-client = "0.21.1"
+etcd-client = { version = "0.21.1", features = ["tls"] }
 pyo3 = { version = "0.27.2", features = ["extension-module", "multiple-pymethods"] }
 # Using patched version with explicit shutdown API
 pyo3-async-runtimes = { path = "vendor/pyo3-async-runtimes", features = ["attributes", "tokio-runtime"] }

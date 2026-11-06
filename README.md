@@ -28,6 +28,26 @@ async def main():
         print(bytes(value).decode())  # testvalue
 ```
 
+### Connecting over TLS
+
+Use `https://` endpoints and pass the certificates as PEM bytes. `with_identity()` is needed only when the server requires client certificates.
+
+Set `with_handshake_timeout()` as well. Without it, a server that stops responding during the TLS handshake blocks the connection indefinitely, because `ConnectOptions.with_timeout()` and `with_connect_timeout()` do not end it.
+
+```python
+from pathlib import Path
+
+from etcd_client import Client, ConnectOptions, TlsOptions
+
+tls = (
+    TlsOptions()
+    .with_ca_certificate(Path("ca.pem").read_bytes())
+    .with_identity(Path("client.pem").read_bytes(), Path("client-key.pem").read_bytes())
+    .with_handshake_timeout(5.0)
+)
+etcd = Client(["https://127.0.0.1:2379"], connect_options=ConnectOptions().with_tls(tls))
+```
+
 ### Working with key prefixes
 
 `EtcdCommunicator.get_prefix(prefix)` returns a list of key-value pairs matching the given prefix.
@@ -261,7 +281,7 @@ This will automatically install build dependencies like [`maturin`](https://gith
 
 ### Setup development environment
 
-This project uses [uv](https://docs.astral.sh/uv/) for fast Python package management.
+This project uses [uv](https://docs.astral.sh/uv/) for fast Python package management. Building the Rust extension requires Rust 1.88 or later.
 
 ```bash
 # Install uv (if not already installed)
