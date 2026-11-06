@@ -281,7 +281,7 @@ This will automatically install build dependencies like [`maturin`](https://gith
 
 ### Setup development environment
 
-This project uses [uv](https://docs.astral.sh/uv/) for fast Python package management.
+This project uses [uv](https://docs.astral.sh/uv/) for fast Python package management. Building the Rust extension requires Rust 1.88 or later.
 
 ```bash
 # Install uv (if not already installed)
