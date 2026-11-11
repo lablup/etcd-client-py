@@ -48,6 +48,17 @@ tls = (
 etcd = Client(["https://127.0.0.1:2379"], connect_options=ConnectOptions().with_tls(tls))
 ```
 
+### Connecting with a user
+
+etcd expires an authentication token that is not used for a while (5 minutes by default, `--auth-token-ttl`). Set `with_auto_token_refresh(True)` so that a request rejected with an expired token authenticates again and is resent. Without it, every request fails with `invalid auth token` once the token expires.
+
+```python
+from etcd_client import Client, ConnectOptions
+
+connect_options = ConnectOptions().with_user("root", "password").with_auto_token_refresh(True)
+etcd = Client(["http://127.0.0.1:2379"], connect_options=connect_options)
+```
+
 ### Working with key prefixes
 
 `EtcdCommunicator.get_prefix(prefix)` returns a list of key-value pairs matching the given prefix.

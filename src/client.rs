@@ -79,6 +79,10 @@ impl PyConnectOptions {
         PyConnectOptions(self.0.clone().with_user(name, password))
     }
 
+    fn with_auto_token_refresh(&self, enabled: bool) -> Self {
+        PyConnectOptions(self.0.clone().with_auto_token_refresh(enabled))
+    }
+
     fn with_keep_alive(&self, interval: f64, timeout: f64) -> Self {
         PyConnectOptions(self.0.clone().with_keep_alive(
             Duration::from_secs_f64(interval),
